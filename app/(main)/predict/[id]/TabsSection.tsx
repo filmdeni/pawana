@@ -47,7 +47,7 @@ export default function TabsSection({ predictionId, description, creator, endsAt
         ))}
       </div>
 
-      <div className="p-5">
+      <div className="p-3 md:p-5">
         {tab === "chat" && <CommentSection predictionId={predictionId} />}
 
         {tab === "info" && (

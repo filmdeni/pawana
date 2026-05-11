@@ -93,7 +93,7 @@ export default async function MissionsPage() {
   const specialDone = special.filter((m) => m.progress >= m.total).length;
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-6">
+    <div className="p-4 md:p-6 max-w-3xl mx-auto space-y-5 md:space-y-6">
       <div className="flex items-center gap-3 mb-2">
         <div className="w-10 h-10 rounded-xl bg-yellow-400/10 border border-yellow-400/30 flex items-center justify-center">
           <Zap className="w-5 h-5 text-yellow-400" />

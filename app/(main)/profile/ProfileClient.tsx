@@ -73,9 +73,9 @@ export default function ProfileClient({
         />
       )}
 
-      <div className="p-6 max-w-4xl mx-auto space-y-5">
+      <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-4 md:space-y-5">
         {/* Profile Hero */}
-        <div className="glass-gold rounded-2xl p-6 relative overflow-hidden border border-[rgba(124,58,237,0.3)]">
+        <div className="glass-gold rounded-2xl p-4 md:p-6 relative overflow-hidden border border-[rgba(124,58,237,0.3)]">
           <div className="absolute inset-0 cosmic-bg opacity-40" />
           <div className="absolute -top-10 -right-10 w-52 h-52 rounded-full bg-purple-600/15 blur-3xl" />
 

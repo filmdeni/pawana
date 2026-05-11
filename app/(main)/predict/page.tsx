@@ -45,14 +45,14 @@ export default async function PredictPage() {
   const predictions = dbPredictions.length > 0 ? dbPredictions.map(rowToCard) : MOCK;
 
   return (
-    <div className="p-6 max-w-screen-xl mx-auto">
-      <div className="flex items-center justify-between mb-5">
+    <div className="p-4 md:p-6 max-w-screen-xl mx-auto">
+      <div className="flex items-center justify-between mb-5 gap-3">
         <div>
           <h1 className="text-xl font-black gradient-gold">คำทำนายทั้งหมด</h1>
           <p className="text-sm text-[var(--text-muted)]">เลือกหัวข้อที่คุณสนใจและทำนาย</p>
         </div>
-        <Link href="/create" className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm bg-gradient-to-r from-purple-600 to-violet-700 text-white hover:from-purple-500 hover:to-violet-600 transition-all glow-purple">
-          <Plus className="w-4 h-4" /> สร้างคำทำนาย
+        <Link href="/create" className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl font-bold text-sm bg-gradient-to-r from-purple-600 to-violet-700 text-white hover:from-purple-500 hover:to-violet-600 transition-all glow-purple flex-shrink-0">
+          <Plus className="w-4 h-4" /> <span className="hidden sm:inline">สร้างคำทำนาย</span><span className="sm:hidden">สร้าง</span>
         </Link>
       </div>
 

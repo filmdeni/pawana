@@ -60,7 +60,7 @@ export default function SettingsPage() {
   const toggle = (key: string) => setToggles((t) => ({ ...t, [key]: !t[key] }));
 
   return (
-    <div className="p-6 max-w-2xl mx-auto space-y-4">
+    <div className="p-4 md:p-6 max-w-2xl mx-auto space-y-4">
       <div className="mb-6">
         <h1 className="text-xl font-black gradient-gold">ตั้งค่า</h1>
         <p className="text-sm text-[var(--text-muted)]">จัดการบัญชีและการตั้งค่าของคุณ</p>

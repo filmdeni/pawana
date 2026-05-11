@@ -71,7 +71,7 @@ export default function RankingClient({ dbLeaders, currentUserId }: Props) {
   const rest  = leaders.slice(3);
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-4 md:p-6 max-w-4xl mx-auto">
       {/* Header */}
       <div className="text-center mb-8">
         <div
@@ -170,8 +170,9 @@ export default function RankingClient({ dbLeaders, currentUserId }: Props) {
         </div>
       ) : (
         <div className="glass rounded-2xl overflow-hidden">
+          {/* Table header — hidden on mobile */}
           <div
-            className="grid grid-cols-12 px-4 py-3 text-[11px] font-bold uppercase tracking-wide"
+            className="hidden sm:grid grid-cols-12 px-4 py-3 text-[11px] font-bold uppercase tracking-wide"
             style={{ color: "var(--text-muted)", borderBottom: "1px solid #1E1535" }}
           >
             <span className="col-span-1 text-center">#</span>
@@ -185,43 +186,70 @@ export default function RankingClient({ dbLeaders, currentUserId }: Props) {
           {leaders.map((u, i) => (
             <div
               key={u.id}
-              className="grid grid-cols-12 px-4 py-3.5 items-center transition-colors hover:bg-white/[0.02]"
+              className="px-3 sm:px-4 py-3 sm:py-3.5 items-center transition-colors hover:bg-white/[0.02]"
               style={{
                 borderBottom: i < leaders.length - 1 ? "1px solid #1A1530" : "none",
                 background: u.isMe ? "rgba(111,75,255,0.10)" : undefined,
                 ...(u.isMe ? { borderLeft: "2px solid #6F4BFF" } : {}),
               }}
             >
-              <span className="col-span-1 text-center text-sm font-black text-[var(--text-muted)]">
-                {u.badge || `#${u.rank}`}
-              </span>
-              <div className="col-span-4 flex items-center gap-2.5 min-w-0">
+              {/* Mobile layout */}
+              <div className="flex sm:hidden items-center gap-3">
+                <span className="w-6 text-center text-sm font-black text-[var(--text-muted)] flex-shrink-0">
+                  {u.badge || `#${u.rank}`}
+                </span>
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 overflow-hidden"
                   style={{ background: "linear-gradient(135deg, #6F4BFF, #A78BFA)" }}
                 >
                   <Avatar url={u.avatar_url} name={u.name} size={32} />
                 </div>
-                <div className="min-w-0">
+                <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-[var(--text-primary)] truncate">
                     {u.name}
                     {u.isMe && <span className="text-[10px] text-[#6F4BFF] ml-1">(คุณ)</span>}
                   </p>
                   <RankBadge tier={u.tier} size="sm" />
                 </div>
+                <div className="text-right flex-shrink-0">
+                  <p className="text-sm font-black" style={{ color: "#D7B56D" }}>{u.coins.toLocaleString()}</p>
+                  <p className="text-[11px]" style={{ color: "#5ED3A6" }}>{u.accuracy_pct}%</p>
+                </div>
               </div>
-              <span className="col-span-2 text-right text-sm font-black" style={{ color: "#D7B56D" }}>
-                {u.coins.toLocaleString()}
-              </span>
-              <span className="col-span-2 text-right text-sm font-semibold" style={{ color: "#5ED3A6" }}>
-                {u.accuracy_pct}%
-              </span>
-              <span className="col-span-1 text-right text-xs" style={{ color: "#FFB86B" }}>
-                {u.streak > 0 ? <span className="fire-flicker inline-block">🔥{u.streak}</span> : "—"}
-              </span>
-              <span className="col-span-2 text-right text-xs text-[var(--text-muted)]">
-                {u.total_predictions} / {u.correct_predictions}
-              </span>
+
+              {/* Desktop layout */}
+              <div className="hidden sm:grid grid-cols-12 items-center">
+                <span className="col-span-1 text-center text-sm font-black text-[var(--text-muted)]">
+                  {u.badge || `#${u.rank}`}
+                </span>
+                <div className="col-span-4 flex items-center gap-2.5 min-w-0">
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 overflow-hidden"
+                    style={{ background: "linear-gradient(135deg, #6F4BFF, #A78BFA)" }}
+                  >
+                    <Avatar url={u.avatar_url} name={u.name} size={32} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-[var(--text-primary)] truncate">
+                      {u.name}
+                      {u.isMe && <span className="text-[10px] text-[#6F4BFF] ml-1">(คุณ)</span>}
+                    </p>
+                    <RankBadge tier={u.tier} size="sm" />
+                  </div>
+                </div>
+                <span className="col-span-2 text-right text-sm font-black" style={{ color: "#D7B56D" }}>
+                  {u.coins.toLocaleString()}
+                </span>
+                <span className="col-span-2 text-right text-sm font-semibold" style={{ color: "#5ED3A6" }}>
+                  {u.accuracy_pct}%
+                </span>
+                <span className="col-span-1 text-right text-xs" style={{ color: "#FFB86B" }}>
+                  {u.streak > 0 ? <span className="fire-flicker inline-block">🔥{u.streak}</span> : "—"}
+                </span>
+                <span className="col-span-2 text-right text-xs text-[var(--text-muted)]">
+                  {u.total_predictions} / {u.correct_predictions}
+                </span>
+              </div>
             </div>
           ))}
         </div>

@@ -23,8 +23,8 @@ export default function PredictList({ predictions }: Props) {
 
   return (
     <>
-      <div className="flex gap-3 mb-5 flex-wrap">
-        <div className="relative flex-1 min-w-52">
+      <div className="flex flex-col sm:flex-row gap-3 mb-5">
+        <div className="relative w-full sm:flex-1 sm:min-w-52">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400/60" />
           <input
             value={search}
@@ -33,7 +33,7 @@ export default function PredictList({ predictions }: Props) {
             className="w-full bg-white/5 border border-[rgba(124,58,237,0.2)] rounded-xl pl-9 pr-4 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-purple-500/60 transition-all"
           />
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap sm:flex-nowrap overflow-x-auto pb-1">
           {categories.map((c) => (
             <button
               key={c}
@@ -53,7 +53,7 @@ export default function PredictList({ predictions }: Props) {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((p) => <PredictionCard key={p.id} p={p} />)}
+          {filtered.map((p) => <PredictionCard key={p.id} p={p} showComments />)}
         </div>
       )}
     </>

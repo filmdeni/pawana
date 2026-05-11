@@ -86,15 +86,15 @@ export default function BoardPage() {
   const [activeTab, setActiveTab] = useState("ทั้งหมด");
 
   return (
-    <div className="p-6 max-w-screen-xl mx-auto">
+    <div className="p-4 md:p-6 max-w-screen-xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-5 gap-3">
         <div>
           <h1 className="text-xl font-black gradient-gold">กระดานสนทนา</h1>
           <p className="text-sm text-[var(--text-muted)]">แลกเปลี่ยนมุมมองกับนักพยากรณ์ทั่วไทย</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm bg-gradient-to-r from-purple-600 to-violet-700 text-white hover:from-purple-500 hover:to-violet-600 transition-all glow-purple">
-          <Plus className="w-4 h-4" /> สร้างโพสต์
+        <button className="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl font-bold text-sm bg-gradient-to-r from-purple-600 to-violet-700 text-white hover:from-purple-500 hover:to-violet-600 transition-all glow-purple flex-shrink-0">
+          <Plus className="w-4 h-4" /> <span className="hidden sm:inline">สร้างโพสต์</span><span className="sm:hidden">โพสต์</span>
         </button>
       </div>
 

@@ -62,7 +62,7 @@ export default function CreatePage() {
   }
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
+    <div className="p-4 md:p-6 max-w-2xl mx-auto">
       <Link href="/" className="flex items-center gap-2 text-sm text-purple-400 hover:text-purple-300 mb-5 transition-colors">
         <ArrowLeft className="w-4 h-4" /> ยกเลิก
       </Link>
@@ -140,7 +140,7 @@ export default function CreatePage() {
         </div>
 
         {/* Duration + Image row */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-semibold text-[var(--text-primary)] block mb-2">
               <Clock className="w-3.5 h-3.5 inline mr-1 text-purple-400" />

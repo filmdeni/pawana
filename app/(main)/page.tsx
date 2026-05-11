@@ -68,7 +68,7 @@ async function TrendingSection() {
   const dbPredictions = await getTrendingPredictions(4).catch(() => []);
   const predictions: Prediction[] = dbPredictions.length > 0 ? dbPredictions.map(rowToCard) : MOCK;
   return (
-    <div className="grid grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
       {predictions.map((p) => <PredictionCard key={p.id} p={p} />)}
     </div>
   );
@@ -76,7 +76,7 @@ async function TrendingSection() {
 
 function TrendingSkeleton() {
   return (
-    <div className="grid grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
       {Array.from({ length: 4 }).map((_, i) => (
         <div key={i} className="shimmer rounded-xl h-40" />
       ))}
@@ -138,11 +138,10 @@ function UserRankSkeleton() {
 export default function HomePage() {
   return (
     <div
-      className="grid gap-5 p-5 h-full"
-      style={{ gridTemplateColumns: "58fr 27fr" }}
+      className="grid gap-5 p-4 md:p-5 grid-cols-1 md:grid-cols-[58fr_27fr]"
     >
       {/* MAIN CONTENT */}
-      <div className="min-w-0 space-y-5">
+      <div className="min-w-0 space-y-4 md:space-y-5">
 
         {/* Hero Banner */}
         <section className="relative rounded-2xl overflow-hidden scanlines" style={{ height: "200px", border: "1px solid rgba(111,75,255,0.30)", boxShadow: "0 0 40px rgba(111,75,255,0.08)" }}>
@@ -155,9 +154,9 @@ export default function HomePage() {
             priority
           />
           <div
-            className="absolute inset-y-0 left-0 z-10 flex flex-col justify-center px-6 gap-2"
+            className="absolute inset-y-0 left-0 z-10 flex flex-col justify-center px-4 md:px-6 gap-2"
             style={{
-              width: "35%",
+              width: "55%",
               background: "linear-gradient(to right, rgba(8,6,18,0.93) 60%, transparent 100%)",
             }}
           >
@@ -208,7 +207,7 @@ export default function HomePage() {
             </div>
             <span className="text-xs text-[var(--text-muted)]">รีเซ็ตใหม่ 12:45:30</span>
           </div>
-          <div className="grid grid-cols-4 gap-4 items-stretch">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 items-stretch">
             {MOCK_MISSIONS.map((m, i) => {
               const pct = Math.min((m.progress / m.total) * 100, 100);
               return (
@@ -257,7 +256,7 @@ export default function HomePage() {
                 เข้าร้านค้า
               </Link>
             </div>
-            <div className="flex gap-2 flex-shrink-0">
+            <div className="hidden md:flex gap-2 flex-shrink-0">
               {[
                 { name: "กรอบโปรไฟล์จักรวาล",    price: "5,000",  icon: "🖼️" },
                 { name: "ตราสัญลักษณ์นักพยากรณ์", price: "10,000", icon: "🏅" },
@@ -277,8 +276,7 @@ export default function HomePage() {
 
       {/* RIGHT PANEL */}
       <div
-        className="min-w-0 sticky top-14 flex flex-col gap-4"
-        style={{ height: "calc(100vh - 56px)", overflowY: "auto" }}
+        className="min-w-0 md:sticky md:top-14 flex flex-col gap-4 md:overflow-y-auto md:h-[calc(100vh-56px)]"
       >
         {/* User Rank Card */}
         <Suspense fallback={<UserRankSkeleton />}>

@@ -136,7 +136,7 @@ export default async function PredictDetailPage({ params }: PageProps) {
 
             {/* image side */}
             {pred.image_url && (
-              <div className="w-2/5 flex-shrink-0 relative">
+              <div className="hidden sm:block w-2/5 flex-shrink-0 relative">
                 <img
                   src={pred.image_url}
                   alt=""

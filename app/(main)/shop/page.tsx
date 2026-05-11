@@ -27,9 +27,9 @@ export default function ShopPage() {
   const [buying, setBuying] = useState<number | null>(null);
 
   return (
-    <div className="p-6 max-w-screen-xl mx-auto">
+    <div className="p-4 md:p-6 max-w-screen-xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-5 gap-3">
         <div>
           <h1 className="text-xl font-black flex items-center gap-2 gradient-gold">
             <ShoppingBag className="w-5 h-5 text-[#D7B56D]" /> ร้านค้า
@@ -59,9 +59,9 @@ export default function ShopPage() {
         <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full float pointer-events-none"
           style={{ background: "radial-gradient(circle, rgba(212,128,255,0.15) 0%, transparent 70%)" }} />
 
-        <div className="relative z-10 flex items-center gap-6">
-          <div className="text-7xl float select-none">🔮</div>
-          <div className="flex-1">
+        <div className="relative z-10 flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+          <div className="text-5xl sm:text-7xl float select-none">🔮</div>
+          <div className="flex-1 text-center sm:text-left">
             <div className="flex items-center gap-2 mb-1.5">
               <span
                 className="px-2.5 py-0.5 rounded-full text-[11px] font-black"
