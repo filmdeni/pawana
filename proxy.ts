@@ -27,15 +27,13 @@ export async function proxy(request: NextRequest) {
   const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/register");
   const isPublicApi = pathname.startsWith("/api/public");
 
-  const hasRealSupabase = process.env.NEXT_PUBLIC_SUPABASE_URL !== "https://your-project.supabase.co";
-
-  if (hasRealSupabase && !user && !isAuthPage && !isPublicApi) {
+  if (!user && !isAuthPage && !isPublicApi) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  if (hasRealSupabase && user && isAuthPage) {
+  if (user && isAuthPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);

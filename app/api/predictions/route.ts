@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
       { count: "exact" }
     )
     .gt("ends_at", new Date().toISOString())
+    .eq("status", "approved")
     .is("resolution", null)
     .range(offset, offset + limit - 1);
 
@@ -74,6 +75,7 @@ export async function POST(request: NextRequest) {
       category_id: category_id ?? null,
       ends_at,
       yes_pool: Number(reward) || 0,
+      status: "pending",
     })
     .select("id")
     .single();
