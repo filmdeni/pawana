@@ -1,0 +1,197 @@
+"use client";
+import { useState, useTransition } from "react";
+import Link from "next/link";
+import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
+import { registerAction } from "@/lib/actions/auth";
+import { useToast } from "@/components/Toast";
+
+const strengths = [
+  { label: "อย่างน้อย 8 ตัวอักษร", test: (p: string) => p.length >= 8 },
+  { label: "มีตัวเลข", test: (p: string) => /\d/.test(p) },
+  { label: "มีตัวพิมพ์ใหญ่", test: (p: string) => /[A-Z]/.test(p) },
+];
+
+const strengthColor = ["", "#f87171", "#f4c24a", "#4ade80"];
+const strengthLabel = ["", "อ่อนมาก", "พอใช้", "แข็งแกร่ง"];
+
+export default function RegisterPage() {
+  const [pw, setPw] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [agreed, setAgreed] = useState(false);
+  const [error, setError] = useState("");
+  const [isPending, startTransition] = useTransition();
+  const { success } = useToast();
+
+  const pwScore = strengths.filter((s) => s.test(pw)).length;
+  const pwMatch = pw && confirm && pw === confirm;
+
+  function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError("");
+    if (!pwMatch) { setError("รหัสผ่านไม่ตรงกัน"); return; }
+    if (!agreed) { setError("กรุณายอมรับข้อกำหนดการใช้งาน"); return; }
+    const formData = new FormData(e.currentTarget);
+    startTransition(async () => {
+      const result = await registerAction(formData);
+      if (result && "error" in result) {
+        setError(result.error);
+      } else {
+        success("สร้างบัญชีสำเร็จ! 🔮", "ยินดีต้อนรับสู่จักรวาลภาวนา");
+      }
+    });
+  }
+
+  return (
+    <div className="w-full max-w-sm fade-in">
+      <div className="glass-gold rounded-2xl p-8 relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-yellow-500 to-transparent" />
+        <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-yellow-400/5 blur-2xl" />
+
+        <div className="relative z-10">
+          <h1 className="text-2xl font-black text-[var(--text-primary)] mb-1">สร้างตำนานของคุณ</h1>
+          <p className="text-sm text-[var(--text-muted)] mb-6">เริ่มต้นเส้นทางนักพยากรณ์วันนี้</p>
+
+          {error && (
+            <div className="mb-4 px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm fade-in">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Username */}
+            <div>
+              <label className="text-xs font-semibold text-[var(--text-muted)] block mb-1.5">ชื่อผู้ใช้</label>
+              <div className="relative">
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400/60" />
+                <input
+                  name="username"
+                  placeholder="เช่น MysticPredictor"
+                  required
+                  minLength={3}
+                  className="w-full bg-white/5 border border-[rgba(124,58,237,0.3)] rounded-xl pl-10 pr-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-purple-500/70 transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className="text-xs font-semibold text-[var(--text-muted)] block mb-1.5">อีเมล</label>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400/60" />
+                <input
+                  name="email"
+                  type="email"
+                  placeholder="your@email.com"
+                  required
+                  className="w-full bg-white/5 border border-[rgba(124,58,237,0.3)] rounded-xl pl-10 pr-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-purple-500/70 transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Password */}
+            <div>
+              <label className="text-xs font-semibold text-[var(--text-muted)] block mb-1.5">รหัสผ่าน</label>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400/60" />
+                <input
+                  name="password"
+                  type={showPw ? "text" : "password"}
+                  value={pw}
+                  onChange={(e) => setPw(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className="w-full bg-white/5 border border-[rgba(124,58,237,0.3)] rounded-xl pl-10 pr-10 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-purple-500/70 transition-all"
+                />
+                <button type="button" onClick={() => setShowPw(!showPw)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-purple-400 transition-colors">
+                  {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+
+              {/* Strength meter */}
+              {pw && (
+                <div className="mt-2 space-y-1.5">
+                  <div className="flex gap-1 items-center">
+                    {[0, 1, 2].map((i) => (
+                      <div key={i} className="flex-1 h-1 rounded-full transition-all duration-300"
+                        style={{ background: i < pwScore ? strengthColor[pwScore] : "rgba(255,255,255,0.08)" }} />
+                    ))}
+                    <span className="text-[10px] ml-1.5 font-semibold w-16"
+                      style={{ color: strengthColor[pwScore] }}>
+                      {strengthLabel[pwScore]}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    {strengths.map((s) => (
+                      <span key={s.label}
+                        className={`flex items-center gap-1.5 text-[10px] transition-colors ${s.test(pw) ? "text-green-400" : "text-[var(--text-muted)]"}`}>
+                        <CheckCircle2 className="w-3 h-3 flex-shrink-0" /> {s.label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Confirm */}
+            <div>
+              <label className="text-xs font-semibold text-[var(--text-muted)] block mb-1.5">ยืนยันรหัสผ่าน</label>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400/60" />
+                <input
+                  type="password"
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className={`w-full bg-white/5 border rounded-xl pl-10 pr-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none transition-all
+                    ${confirm ? (pwMatch ? "border-green-500/50" : "border-red-500/50") : "border-[rgba(124,58,237,0.3)]"}`}
+                />
+              </div>
+              {confirm && !pwMatch && (
+                <p className="text-[11px] text-red-400 mt-1">รหัสผ่านไม่ตรงกัน</p>
+              )}
+            </div>
+
+            {/* Terms */}
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <button
+                type="button"
+                onClick={() => setAgreed(!agreed)}
+                className={`w-4 h-4 rounded border flex-shrink-0 mt-0.5 flex items-center justify-center transition-all
+                  ${agreed ? "bg-purple-600 border-purple-600" : "border-[rgba(124,58,237,0.4)] bg-white/5"}`}
+              >
+                {agreed && <CheckCircle2 className="w-3 h-3 text-white" />}
+              </button>
+              <span className="text-xs text-[var(--text-muted)] leading-relaxed select-none">
+                ฉันยอมรับ{" "}
+                <Link href="/terms" className="text-purple-400 hover:text-purple-300">ข้อกำหนดการใช้งาน</Link>
+                {" "}และ{" "}
+                <Link href="/privacy" className="text-purple-400 hover:text-purple-300">นโยบายความเป็นส่วนตัว</Link>
+              </span>
+            </label>
+
+            <button
+              type="submit"
+              disabled={isPending || !agreed || !pwMatch}
+              className="w-full py-3.5 rounded-xl font-bold text-sm bg-gradient-to-r from-purple-600 to-violet-700 text-white hover:from-purple-500 hover:to-violet-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all glow-purple flex items-center justify-center gap-2"
+            >
+              {isPending
+                ? <><Loader2 className="w-4 h-4 animate-spin" /> กำลังสร้างบัญชี...</>
+                : <>เริ่มต้นทำนาย <ArrowRight className="w-4 h-4" /></>
+              }
+            </button>
+          </form>
+
+          <p className="text-center text-sm text-[var(--text-muted)] mt-5">
+            มีบัญชีแล้ว?{" "}
+            <Link href="/login" className="text-purple-400 hover:text-purple-300 font-semibold transition-colors">
+              เข้าสู่ระบบ
+            </Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}

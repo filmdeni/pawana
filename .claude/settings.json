@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p /Users/mhee/Documents/pawana/lib/actions /Users/mhee/Documents/pawana/app/api/predictions /Users/mhee/Documents/pawana/app/api/votes /Users/mhee/Documents/pawana/app/\\\\\\(main\\\\\\)/predict/\\\\[id\\\\])"
+    ],
+    "additionalDirectories": [
+      "/Users/mhee/Documents/pawana/app/(main)/predict/[id]"
+    ]
+  }
+}
