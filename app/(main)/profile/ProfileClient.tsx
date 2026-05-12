@@ -1,12 +1,13 @@
 "use client";
 import { useState } from "react";
 import Image from "next/image";
-import { Bell, Edit3, Trophy, Target } from "lucide-react";
+import { Bell, Edit3, Trophy, Target, LogOut } from "lucide-react";
 import Link from "next/link";
 import RankBadge from "@/components/RankBadge";
 import XPBar from "@/components/XPBar";
 import { VoteHistoryRow } from "@/lib/queries/predictions";
 import EditProfileModal from "./EditProfileModal";
+import { logoutAction } from "@/lib/actions/auth";
 
 
 interface Props {
@@ -265,6 +266,20 @@ export default function ProfileClient({
             })}
           </div>
         </div>
+      {/* Mobile-only logout */}
+      {isOwner && (
+        <div className="md:hidden pb-2">
+          <form action={logoutAction}>
+            <button
+              type="submit"
+              className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl text-sm font-semibold text-red-400 border border-red-500/20 hover:bg-red-500/10 transition-colors glass"
+            >
+              <LogOut className="w-4 h-4" />
+              ออกจากระบบ
+            </button>
+          </form>
+        </div>
+      )}
       </div>
     </>
   );
