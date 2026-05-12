@@ -29,6 +29,7 @@ function rowToCard(r: PredictionRow): Prediction {
     trending: r.is_trending,
     image: catEmoji[r.categories?.slug ?? "other"] ?? "✨",
     imageUrl: r.image_url ?? undefined,
+    imagePosition: r.image_position ?? "50% 50%",
   };
 }
 

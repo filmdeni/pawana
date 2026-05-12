@@ -5,6 +5,7 @@ export interface PredictionRow {
   title: string;
   description: string | null;
   image_url: string | null;
+  image_position: string | null;
   yes_pool: number;
   no_pool: number;
   participant_count: number;
@@ -17,10 +18,38 @@ export interface PredictionRow {
 
 export async function getTrendingPredictions(limit = 8): Promise<PredictionRow[]> {
   const supabase = await createClient();
+
+  // Try manually curated hot picks first
+  const { data: picks } = await supabase
+    .from("hot_picks")
+    .select("slot, prediction_id")
+    .not("prediction_id", "is", null)
+    .order("slot");
+
+  if (picks && picks.length === 4) {
+    const ids = picks.map((p: { prediction_id: string }) => p.prediction_id);
+    const { data, error } = await supabase
+      .from("predictions")
+      .select(`
+        id, title, description, image_url, image_position, yes_pool, no_pool, participant_count,
+        ends_at, is_trending, is_featured,
+        categories ( slug, label, emoji ),
+        profiles ( username, display_name )
+      `)
+      .in("id", ids);
+    if (!error && data) {
+      // Preserve slot order
+      const map = new Map(data.map((r: any) => [r.id, r]));
+      const ordered = ids.map((id) => map.get(id)).filter(Boolean);
+      return ordered as unknown as PredictionRow[];
+    }
+  }
+
+  // Fallback: most popular active predictions
   const { data, error } = await supabase
     .from("predictions")
     .select(`
-      id, title, description, image_url, yes_pool, no_pool, participant_count,
+      id, title, description, image_url, image_position, yes_pool, no_pool, participant_count,
       ends_at, is_trending, is_featured,
       categories ( slug, label, emoji ),
       profiles ( username, display_name )
@@ -42,7 +71,7 @@ export async function getPredictionById(id: string): Promise<PredictionRow | nul
   const { data, error } = await supabase
     .from("predictions")
     .select(`
-      id, title, description, image_url, yes_pool, no_pool, participant_count,
+      id, title, description, image_url, image_position, yes_pool, no_pool, participant_count,
       ends_at, is_trending, is_featured,
       categories ( slug, label, emoji ),
       profiles ( username, display_name )

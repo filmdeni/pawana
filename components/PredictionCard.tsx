@@ -17,6 +17,7 @@ export interface Prediction {
   hot?: boolean;
   image?: string;
   imageUrl?: string;
+  imagePosition?: string;
   totalPool?: string;
   commentCount?: number;
 }
@@ -131,7 +132,8 @@ export default function PredictionCard({ p, showComments }: { p: Prediction; sho
 
           {p.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={p.imageUrl} alt={p.title} className="w-full h-full object-cover transition-opacity duration-300" />
+            <img src={p.imageUrl} alt={p.title} className="w-full h-full object-cover transition-opacity duration-300"
+              style={{ objectPosition: p.imagePosition ?? "50% 50%" }} />
           ) : (
             <span className="text-5xl select-none opacity-50 group-hover:opacity-70 transition-opacity duration-300">{p.image ?? "🔮"}</span>
           )}

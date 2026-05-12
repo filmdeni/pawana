@@ -8,6 +8,7 @@ export type AuthResult = { error: string } | { success: true };
 export async function loginAction(formData: FormData): Promise<AuthResult> {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
+  const next = (formData.get("next") as string) || "/";
 
   if (!email || !password) return { error: "กรุณากรอกข้อมูลให้ครบ" };
 
@@ -21,7 +22,7 @@ export async function loginAction(formData: FormData): Promise<AuthResult> {
   }
 
   revalidatePath("/", "layout");
-  redirect("/");
+  redirect(next);
 }
 
 export async function registerAction(formData: FormData): Promise<AuthResult> {

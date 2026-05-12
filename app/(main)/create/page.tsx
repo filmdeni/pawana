@@ -1,11 +1,12 @@
 "use client";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ImagePlus, Clock, Coins, ChevronDown, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { createPredictionAction } from "@/lib/actions/predictions";
 import { useToast } from "@/components/Toast";
 import ParallaxBg from "@/components/ParallaxBg";
+import ImagePositionPicker from "@/components/ImagePositionPicker";
 
 const categoryOptions = [
   { label: "ดราม่า",  id: 1 },
@@ -34,7 +35,9 @@ export default function CreatePage() {
   const [step, setStep] = useState(1);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePosition, setImagePosition] = useState("50% 50%");
   const [isPending, startTransition] = useTransition();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isValid = title.length >= 10 && title.length <= 120;
 
@@ -50,6 +53,7 @@ export default function CreatePage() {
       fd.set("category_id", String(categoryId));
       fd.set("ends_at", endsAt);
       fd.set("reward", String(reward));
+      fd.set("image_position", imagePosition);
       if (imageFile) fd.set("image", imageFile);
 
       const result = await createPredictionAction(fd);
@@ -161,33 +165,40 @@ export default function CreatePage() {
             </div>
           </div>
 
-          <div>
+          <div className="sm:col-span-2">
             <label className="text-sm font-semibold text-[var(--text-primary)] block mb-2">
               <ImagePlus className="w-3.5 h-3.5 inline mr-1 text-purple-400" />
               รูปภาพประกอบ
             </label>
-            <label className="relative w-full h-[42px] border border-dashed border-[rgba(124,58,237,0.3)] rounded-xl text-xs text-[var(--text-muted)] hover:border-purple-500/50 hover:text-purple-400 transition-all flex items-center justify-center gap-2 cursor-pointer overflow-hidden">
-              {imagePreview ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={imagePreview} alt="preview" className="absolute inset-0 w-full h-full object-cover rounded-xl opacity-70" />
-              ) : null}
-              <span className="relative z-10 flex items-center gap-1">
-                <ImagePlus className="w-3.5 h-3.5" />
-                {imageFile ? imageFile.name.slice(0, 20) : "อัปโหลดรูปภาพ"}
-              </span>
-              <input
-                type="file"
-                name="image"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0] ?? null;
-                  setImageFile(file);
-                  if (file) setImagePreview(URL.createObjectURL(file));
-                  else setImagePreview(null);
-                }}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null;
+                setImageFile(file);
+                setImagePosition("50% 50%");
+                if (file) setImagePreview(URL.createObjectURL(file));
+                else setImagePreview(null);
+              }}
+            />
+            {imagePreview ? (
+              <ImagePositionPicker
+                src={imagePreview}
+                position={imagePosition}
+                height={180}
+                onChange={setImagePosition}
+                onReplace={() => fileInputRef.current?.click()}
+                onRemove={() => { setImageFile(null); setImagePreview(null); setImagePosition("50% 50%"); }}
               />
-            </label>
+            ) : (
+              <button type="button" onClick={() => fileInputRef.current?.click()}
+                className="w-full flex items-center justify-center gap-2 rounded-xl transition-colors text-sm"
+                style={{ height: 48, border: "1.5px dashed rgba(124,58,237,0.35)", color: "rgba(167,139,250,0.7)" }}>
+                <ImagePlus className="w-4 h-4" /> อัปโหลดรูปภาพ
+              </button>
+            )}
           </div>
         </div>
 

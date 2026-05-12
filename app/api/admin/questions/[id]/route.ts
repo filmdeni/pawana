@@ -19,7 +19,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { action, resolution, fields } = body as {
     action: string;
     resolution?: boolean;
-    fields?: { title?: string; description?: string; ends_at?: string; is_featured?: boolean; is_trending?: boolean; image_url?: string | null; category_id?: number | null };
+    fields?: { title?: string; description?: string; ends_at?: string; is_featured?: boolean; is_trending?: boolean; image_url?: string | null; image_position?: string; category_id?: number | null };
   };
 
   let patch: Record<string, unknown> = {};
@@ -108,7 +108,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     return NextResponse.json({ ok: true });
   } else if (action === "update" && fields) {
-    const allowed = ["title", "description", "ends_at", "is_featured", "is_trending", "image_url", "category_id"] as const;
+    const allowed = ["title", "description", "ends_at", "is_featured", "is_trending", "image_url", "image_position", "category_id"] as const;
     for (const k of allowed) if (fields[k] !== undefined) patch[k] = fields[k];
     if (Object.keys(patch).length === 0) return NextResponse.json({ error: "No fields" }, { status: 400 });
   } else {

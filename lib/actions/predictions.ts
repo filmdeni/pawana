@@ -76,6 +76,7 @@ export async function createPredictionAction(formData: FormData) {
   const endsAt = formData.get("ends_at") as string;
   const reward = Number(formData.get("reward") ?? 0);
   const imageFile = formData.get("image") as File | null;
+  const imagePosition = (formData.get("image_position") as string | null) ?? "50% 50%";
 
   if (!title || title.length < 10) return { error: "หัวข้อต้องมีอย่างน้อย 10 ตัวอักษร" };
   if (!endsAt) return { error: "กรุณาเลือกวันสิ้นสุด" };
@@ -102,6 +103,7 @@ export async function createPredictionAction(formData: FormData) {
     yes_pool: reward,
     no_pool: 0,
     image_url: imageUrl,
+    image_position: imagePosition,
   }).select("id").single();
 
   if (error) return { error: "เกิดข้อผิดพลาด: " + error.message };

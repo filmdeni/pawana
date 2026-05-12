@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import VotePanel from "@/components/VotePanel";
 import { clampPct } from "@/lib/poolDisplay";
@@ -14,6 +15,7 @@ interface VsModalProps {
   initialNoPool: number;
   endsAt: string;
   userVote?: { choice: boolean; amount: number } | null;
+  isLoggedIn: boolean;
 }
 
 export default function VsModal({
@@ -26,12 +28,18 @@ export default function VsModal({
   initialNoPool,
   endsAt,
   userVote,
+  isLoggedIn,
 }: VsModalProps) {
   const [open, setOpen] = useState(false);
   const [selectedChoice, setSelectedChoice] = useState<boolean | null>(null);
   const { yes: yesDisplay, no: noDisplay } = clampPct(yesPct);
+  const router = useRouter();
 
   function openWith(choice: boolean) {
+    if (!isLoggedIn) {
+      router.push(`/login?next=/predict/${predictionId}`);
+      return;
+    }
     setSelectedChoice(choice);
     setOpen(true);
   }

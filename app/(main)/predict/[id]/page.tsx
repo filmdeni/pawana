@@ -70,6 +70,7 @@ export default async function PredictDetailPage({ params }: PageProps) {
         creator: dbPred.profiles?.display_name ?? dbPred.profiles?.username ?? "unknown",
         hot: dbPred.is_featured,
         image_url: dbPred.image_url,
+        image_position: dbPred.image_position ?? "50% 50%",
         createdAt: null as string | null,
       }
     : { ...(MOCK_FALLBACK[id] ?? MOCK_FALLBACK["1"]), categoryEmoji: "", createdAt: null as string | null };
@@ -144,6 +145,7 @@ export default async function PredictDetailPage({ params }: PageProps) {
                   src={pred.image_url}
                   alt=""
                   className="absolute inset-0 w-full h-full object-cover"
+                  style={{ objectPosition: pred.image_position ?? "50% 50%" }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-[var(--bg-card)] via-transparent to-transparent" />
               </div>
@@ -161,6 +163,7 @@ export default async function PredictDetailPage({ params }: PageProps) {
             initialNoPool={pred.noPool}
             endsAt={pred.endsAt}
             userVote={userVote}
+            isLoggedIn={!!user}
           />
 
           {/* ── Stats row ─────────────────────────────────── */}
