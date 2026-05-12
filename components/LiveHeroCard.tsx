@@ -49,7 +49,6 @@ export default function LiveHeroCard() {
   const [msLeft, setMsLeft]     = useState(0);
   const [viewers, setViewers]   = useState(0);
   const [yesPct, setYesPct]     = useState(50);
-  const [voted, setVoted]       = useState<"yes"|"no"|null>(null);
   const [imgError, setImgError] = useState(false);
   const [yesUp, setYesUp]       = useState(false);
 
@@ -73,7 +72,6 @@ export default function LiveHeroCard() {
     setMsLeft(endsAt - Date.now());
     setViewers(pred.viewers);
     setYesPct(pred.yes_pct);
-    setVoted(null);
     setImgError(false);
 
     const iv = setInterval(() => {
@@ -177,15 +175,11 @@ export default function LiveHeroCard() {
             </div>
           </div>
 
-          {/* Vote buttons */}
+          {/* Vote buttons — go to detail page to vote */}
           <div className="grid grid-cols-2 gap-2" style={{ width:"80%" }}>
-            <button onClick={() => setVoted(voted==="yes" ? null : "yes")}
-              className="rounded-xl py-2.5 transition-all duration-200 active:scale-95"
-              style={voted==="yes" ? {
-                background:"linear-gradient(135deg,#dc2626,#b91c1c)",
-                border:"1.5px solid rgba(239,68,68,0.9)",
-                boxShadow:"0 0 28px rgba(220,38,38,0.55)",
-              } : {
+            <Link href={`/predict/${pred.prediction_id}`}
+              className="rounded-xl py-2.5 transition-all duration-200 active:scale-95 block"
+              style={{
                 background:"linear-gradient(135deg,rgba(185,28,28,0.65),rgba(220,38,38,0.50))",
                 border:"1.5px solid rgba(239,68,68,0.45)",
               }}>
@@ -194,14 +188,10 @@ export default function LiveHeroCard() {
                 <span className="text-sm font-black text-white">{pred.yes_btn}</span>
               </div>
               <div className="text-[10px] text-center mt-0.5" style={{ color:"rgba(255,255,255,0.50)" }}>อยู่ฝั่ง YES</div>
-            </button>
-            <button onClick={() => setVoted(voted==="no" ? null : "no")}
-              className="rounded-xl py-2.5 transition-all duration-200 active:scale-95"
-              style={voted==="no" ? {
-                background:"linear-gradient(135deg,#6d28d9,#5b21b6)",
-                border:"1.5px solid rgba(139,92,246,0.9)",
-                boxShadow:"0 0 28px rgba(109,40,217,0.55)",
-              } : {
+            </Link>
+            <Link href={`/predict/${pred.prediction_id}`}
+              className="rounded-xl py-2.5 transition-all duration-200 active:scale-95 block"
+              style={{
                 background:"linear-gradient(135deg,rgba(88,28,135,0.60),rgba(109,40,217,0.45))",
                 border:"1.5px solid rgba(139,92,246,0.45)",
               }}>
@@ -210,7 +200,7 @@ export default function LiveHeroCard() {
                 <span className="text-sm font-black text-white">{pred.no_btn}</span>
               </div>
               <div className="text-[10px] text-center mt-0.5" style={{ color:"rgba(255,255,255,0.45)" }}>อยู่ฝั่ง NO</div>
-            </button>
+            </Link>
           </div>
 
           {/* Nav dots + link */}

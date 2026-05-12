@@ -186,14 +186,14 @@ export default function PredictionCard({ p, showComments }: { p: Prediction; sho
             </div>
           </div>
 
-          {/* YES / NO buttons */}
+          {/* YES / NO buttons — navigate to detail page to vote */}
           <div className="grid grid-cols-2 gap-1.5 mt-auto">
-            <button onClick={(e) => e.preventDefault()} className="btn-yes rounded-xl py-2 text-xs font-bold">
+            <div className="btn-yes rounded-xl py-2 text-xs font-bold text-center">
               ✓ ใช่
-            </button>
-            <button onClick={(e) => e.preventDefault()} className="btn-no rounded-xl py-2 text-xs font-bold">
+            </div>
+            <div className="btn-no rounded-xl py-2 text-xs font-bold text-center">
               ✗ ไม่ใช่
-            </button>
+            </div>
           </div>
 
           {/* Activity pill or plain footer */}
