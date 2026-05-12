@@ -2,6 +2,7 @@
 import { useState, useTransition } from "react";
 import { Bell, Shield, Palette, Globe, LogOut, ChevronRight, Smartphone, Loader2 } from "lucide-react";
 import { logoutAction } from "@/lib/actions/auth";
+import ParallaxBg from "@/components/ParallaxBg";
 
 const sections = [
   {
@@ -60,7 +61,9 @@ export default function SettingsPage() {
   const toggle = (key: string) => setToggles((t) => ({ ...t, [key]: !t[key] }));
 
   return (
-    <div className="p-4 md:p-6 max-w-2xl mx-auto space-y-4">
+    <div className="relative">
+      <ParallaxBg variant="slate" />
+    <div className="relative p-4 md:p-6 max-w-2xl mx-auto space-y-4" style={{ zIndex: 1 }}>
       <div className="mb-6">
         <h1 className="text-xl font-black gradient-gold">ตั้งค่า</h1>
         <p className="text-sm text-[var(--text-muted)]">จัดการบัญชีและการตั้งค่าของคุณ</p>
@@ -152,6 +155,7 @@ export default function SettingsPage() {
           ลบบัญชี
         </button>
       </div>
+    </div>
     </div>
   );
 }

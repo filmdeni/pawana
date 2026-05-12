@@ -1,6 +1,7 @@
 import { Zap, Trophy, Star, Clock } from "lucide-react";
 import MissionCard from "@/components/MissionCard";
 import XPBar from "@/components/XPBar";
+import ParallaxBg from "@/components/ParallaxBg";
 import { getSessionUser } from "@/lib/actions/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getClaimedMissionSlugs } from "@/lib/actions/missions";
@@ -93,7 +94,9 @@ export default async function MissionsPage() {
   const specialDone = special.filter((m) => m.progress >= m.total).length;
 
   return (
-    <div className="p-4 md:p-6 max-w-3xl mx-auto space-y-5 md:space-y-6">
+    <div className="relative">
+      <ParallaxBg variant="emerald" />
+    <div className="relative p-4 md:p-6 max-w-3xl mx-auto space-y-5 md:space-y-6" style={{ zIndex: 1 }}>
       <div className="flex items-center gap-3 mb-2">
         <div className="w-10 h-10 rounded-xl bg-yellow-400/10 border border-yellow-400/30 flex items-center justify-center">
           <Zap className="w-5 h-5 text-yellow-400" />
@@ -166,6 +169,7 @@ export default async function MissionsPage() {
         <XPBar current={xp} max={level * 208} level={level} />
         <p className="text-xs text-[var(--text-muted)] mt-2">ทำภารกิจครบเพื่อรับ +150 XP โบนัส</p>
       </div>
+    </div>
     </div>
   );
 }

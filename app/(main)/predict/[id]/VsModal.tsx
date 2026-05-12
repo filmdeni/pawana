@@ -32,7 +32,6 @@ export default function VsModal({
   const { yes: yesDisplay, no: noDisplay } = clampPct(yesPct);
 
   function openWith(choice: boolean) {
-    if (userVote) return; // already voted
     setSelectedChoice(choice);
     setOpen(true);
   }
@@ -45,8 +44,7 @@ export default function VsModal({
           {/* Yes */}
           <button
             onClick={() => openWith(true)}
-            disabled={!!userVote}
-            className="flex-1 py-5 text-center transition-all hover:brightness-125 disabled:cursor-default"
+            className="flex-1 py-5 text-center transition-all hover:brightness-125"
             style={{ background: "rgba(34,197,94,0.15)" }}
           >
             <p className="text-xs font-semibold text-green-400 mb-1">ใช่</p>
@@ -70,8 +68,7 @@ export default function VsModal({
           {/* No */}
           <button
             onClick={() => openWith(false)}
-            disabled={!!userVote}
-            className="flex-1 py-5 text-center transition-all hover:brightness-125 disabled:cursor-default"
+            className="flex-1 py-5 text-center transition-all hover:brightness-125"
             style={{ background: "rgba(239,68,68,0.15)" }}
           >
             <p className="text-xs font-semibold text-red-400 mb-1">ไม่ใช่</p>

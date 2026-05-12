@@ -1,13 +1,14 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { LayoutDashboard, MessageSquare, LogOut } from "lucide-react";
+import { LayoutDashboard, MessageSquare, LogOut, Image as ImageIcon } from "lucide-react";
 import { getSessionUser } from "@/lib/actions/auth";
 import { createClient } from "@/lib/supabase/server";
 
 const adminNav = [
   { href: "/admin",           label: "Dashboard",  icon: LayoutDashboard },
   { href: "/admin/questions", label: "คำถาม",       icon: MessageSquare },
+  { href: "/admin/hero",      label: "Hero Banner", icon: ImageIcon },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

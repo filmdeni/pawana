@@ -1,8 +1,10 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Suspense } from "react";
-import { Flame, TrendingUp, Zap, ChevronRight, MessageSquare, Sparkles } from "lucide-react";
+import { Flame, TrendingUp, Zap, ChevronRight, MessageSquare } from "lucide-react";
 import PredictionCard, { Prediction } from "@/components/PredictionCard";
+import LiveHeroCard from "@/components/LiveHeroCard";
+import ParallaxBg from "@/components/ParallaxBg";
 import { getTrendingPredictions, PredictionRow } from "@/lib/queries/predictions";
 import { getSessionUser } from "@/lib/actions/auth";
 import { clampPct } from "@/lib/poolDisplay";
@@ -137,57 +139,28 @@ function UserRankSkeleton() {
 
 export default function HomePage() {
   return (
+    <div className="relative">
+      <ParallaxBg variant="indigo" />
     <div
-      className="grid gap-5 p-4 md:p-5 grid-cols-1 md:grid-cols-[58fr_27fr]"
+      className="relative grid gap-5 p-4 md:p-5 grid-cols-1 md:grid-cols-[58fr_27fr]"
+      style={{ zIndex: 1 }}
     >
       {/* MAIN CONTENT */}
       <div className="min-w-0 space-y-4 md:space-y-5">
 
-        {/* Hero Banner */}
-        <section className="relative rounded-2xl overflow-hidden scanlines" style={{ height: "200px", border: "1px solid rgba(111,75,255,0.30)", boxShadow: "0 0 40px rgba(111,75,255,0.08)" }}>
-          <Image
-            src="/images/banner1.png"
-            alt="banner"
-            fill
-            sizes="(max-width: 1280px) 58vw, 800px"
-            className="object-cover object-center scale-[1.01]"
-            priority
-          />
-          <div
-            className="absolute inset-y-0 left-0 z-10 flex flex-col justify-center px-4 md:px-6 gap-2"
-            style={{
-              width: "55%",
-              background: "linear-gradient(to right, rgba(8,6,18,0.93) 60%, transparent 100%)",
-            }}
-          >
-            <p className="text-[10px] font-semibold text-purple-300/60 tracking-[0.15em] uppercase">
-              ✦ จักรวาลแห่งผู้มองเห็น
-            </p>
-            <div>
-              <h1 className="text-xl font-black text-white leading-tight">ทำนายอนาคต</h1>
-              <h1 className="text-xl font-black gradient-gold glow-text-gold leading-tight">สร้างตำนานของคุณ</h1>
-            </div>
-            <div className="flex gap-2 pt-1">
-              <Link href="/predict"
-                className="px-3 py-1.5 rounded-lg font-bold text-xs text-white transition-all"
-                style={{ background: "linear-gradient(135deg, #4B3975, #6F4BFF)", boxShadow: "0 0 18px rgba(111,75,255,0.40)" }}>
-                เริ่มทำนายเลย
-              </Link>
-              <Link href="/ranking"
-                className="px-3 py-1.5 rounded-lg font-bold text-xs glass border transition-all hover:bg-white/[0.06]"
-                style={{ borderColor: "rgba(255,255,255,0.15)", color: "#A59BBF" }}>
-                ดูการเล่น
-              </Link>
-            </div>
-          </div>
-        </section>
+        {/* Hero — LIVE prediction card */}
+        <LiveHeroCard />
 
         {/* Trending Predictions */}
         <section>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <Flame className="w-4 h-4 text-orange-400" />
-              <h2 className="text-sm font-bold text-[var(--text-primary)]">หัวข้อที่กำลังมาแรง</h2>
+              <Flame className="w-4 h-4 text-orange-400 fire-flicker" />
+              <h2 className="text-sm font-bold text-[var(--text-primary)]">กำลังร้อนแรง</h2>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                style={{ background: "rgba(217,107,107,0.15)", border: "1px solid rgba(217,107,107,0.3)", color: "#f87171" }}>
+                LIVE
+              </span>
             </div>
             <Link href="/predict" className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1">
               ดูทั้งหมด <ChevronRight className="w-3 h-3" />
@@ -360,6 +333,7 @@ export default function HomePage() {
 
         <div className="flex-[10]" />
       </div>
+    </div>
     </div>
   );
 }

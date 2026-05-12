@@ -1,6 +1,7 @@
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import PredictList from "./PredictList";
+import ParallaxBg from "@/components/ParallaxBg";
 import { getTrendingPredictions, PredictionRow } from "@/lib/queries/predictions";
 import { Prediction } from "@/components/PredictionCard";
 import { clampPct } from "@/lib/poolDisplay";
@@ -45,7 +46,9 @@ export default async function PredictPage() {
   const predictions = dbPredictions.length > 0 ? dbPredictions.map(rowToCard) : MOCK;
 
   return (
-    <div className="p-4 md:p-6 max-w-screen-xl mx-auto">
+    <div className="relative">
+      <ParallaxBg />
+    <div className="relative p-4 md:p-6 max-w-screen-xl mx-auto" style={{ zIndex: 1 }}>
       <div className="flex items-center justify-between mb-5 gap-3">
         <div>
           <h1 className="text-xl font-black gradient-gold">คำทำนายทั้งหมด</h1>
@@ -57,6 +60,7 @@ export default async function PredictPage() {
       </div>
 
       <PredictList predictions={predictions} />
+    </div>
     </div>
   );
 }

@@ -97,23 +97,20 @@ export default function Sidebar() {
       </div>
 
       {/* Bottom Utilities */}
-      <div className="px-3 py-4 space-y-0.5" style={{ borderTop: "1px solid #1E1535" }}>
-        <Link href="/notifications" className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/[0.03] transition-all">
-          <Bell className="w-4 h-4" />
-          <span className="flex-1">การแจ้งเตือน</span>
-          <span className="notif-badge">5</span>
+      <div className="px-3 py-3 flex items-center justify-around" style={{ borderTop: "1px solid #1E1535" }}>
+        <Link href="/settings" className="p-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/[0.05] transition-all">
+          <Settings className="w-5 h-5" />
         </Link>
-        <Link href="/settings" className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/[0.03] transition-all">
-          <Settings className="w-4 h-4" />
-          ตั้งค่า
+        <Link href="/notifications" className="relative p-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/[0.05] transition-all">
+          <Bell className="w-5 h-5" />
+          <span className="notif-badge absolute -top-0.5 -right-0.5">5</span>
         </Link>
         <button
           onClick={handleLogout}
           disabled={isPending}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-[#D96B6B]/60 hover:text-[#D96B6B] hover:bg-[#D96B6B]/[0.06] transition-all disabled:opacity-40"
+          className="p-2 rounded-xl text-[#D96B6B]/60 hover:text-[#D96B6B] hover:bg-[#D96B6B]/[0.06] transition-all disabled:opacity-40"
         >
-          {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
-          ออกจากระบบ
+          {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogOut className="w-5 h-5" />}
         </button>
       </div>
     </aside>

@@ -84,6 +84,7 @@ export default function CommentSection({ predictionId }: CommentSectionProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [newestId, setNewestId] = useState<string | null>(null);
   const { success, error: toastError } = useToast();
 
   const fetchComments = useCallback(async () => {
@@ -185,6 +186,8 @@ export default function CommentSection({ predictionId }: CommentSectionProps) {
       }
       const data = await res.json();
       setComments((prev) => [data.comment, ...prev]);
+      setNewestId(data.comment.id);
+      setTimeout(() => setNewestId(null), 900);
       setText("");
       success("แสดงความคิดเห็นแล้ว ✓");
     });
@@ -247,7 +250,7 @@ export default function CommentSection({ predictionId }: CommentSectionProps) {
       ) : (
         <div className="space-y-3">
           {comments.map((c) => (
-            <div key={c.id} className="flex gap-3 group fade-in">
+            <div key={c.id} className={`flex gap-3 group ${c.id === newestId ? "comment-new" : "fade-in"}`}>
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-600 to-purple-900 flex items-center justify-center text-xs font-bold flex-shrink-0 overflow-hidden">
                 {c.avatar_url
                   ? <Image src={c.avatar_url} alt={displayName(c)} width={32} height={32} className="w-full h-full object-cover" />

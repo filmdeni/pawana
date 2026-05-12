@@ -3,6 +3,7 @@ import Sidebar from "@/components/Sidebar";
 import TopNav from "@/components/TopNav";
 import MobileNav from "@/components/MobileNav";
 import CoinFlyLayer from "@/components/CoinFly";
+import WinNotificationLayer from "@/components/WinNotificationLayer";
 import { getSessionUser } from "@/lib/actions/auth";
 import { getUserProfile } from "@/lib/queries/predictions";
 
@@ -57,6 +58,9 @@ export default async function MainLayout({ children }: { children: React.ReactNo
 
       {/* Coin fly animation layer */}
       <CoinFlyLayer />
+
+      {/* Win celebration overlay (realtime) */}
+      <WinNotificationLayer userId={user?.id ?? null} />
     </div>
   );
 }

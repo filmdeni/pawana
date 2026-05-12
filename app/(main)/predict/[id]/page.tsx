@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, Clock, Users, TrendingUp } from "lucide-react";
 import ReportResolutionPanel from "@/components/ReportResolutionPanel";
+import ParallaxBg from "@/components/ParallaxBg";
 import { getPredictionById, getUserVote } from "@/lib/queries/predictions";
 import { getSessionUser } from "@/lib/actions/auth";
 import TabsSection from "./TabsSection";
@@ -80,7 +81,9 @@ export default async function PredictDetailPage({ params }: PageProps) {
   const noPct = 100 - yesPct;
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg-primary)" }}>
+    <div className="relative min-h-screen" style={{ background: "var(--bg-primary)" }}>
+      <ParallaxBg variant="purple" />
+      <div className="relative" style={{ zIndex: 1 }}>
       {/* Back */}
       <div className="px-4 pt-4 pb-2">
         <Link
@@ -184,6 +187,7 @@ export default async function PredictDetailPage({ params }: PageProps) {
 
         {/* ── Tabs ─────────────────────────────────────────── */}
         <TabsSection predictionId={id} description={pred.description} creator={pred.creator} endsAt={pred.endsAt} />
+      </div>
       </div>
     </div>
   );

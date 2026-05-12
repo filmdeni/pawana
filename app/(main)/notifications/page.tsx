@@ -1,6 +1,7 @@
 import { getSessionUser } from "@/lib/actions/auth";
 import { createClient } from "@/lib/supabase/server";
 import NotificationsClient from "./NotificationsClient";
+import ParallaxBg from "@/components/ParallaxBg";
 
 export interface NotifRow {
   id: string;
@@ -27,5 +28,12 @@ export default async function NotificationsPage() {
     notifications = (data ?? []) as NotifRow[];
   }
 
-  return <NotificationsClient notifications={notifications} />;
+  return (
+    <div className="relative">
+      <ParallaxBg variant="blue" />
+      <div className="relative" style={{ zIndex: 1 }}>
+        <NotificationsClient notifications={notifications} />
+      </div>
+    </div>
+  );
 }

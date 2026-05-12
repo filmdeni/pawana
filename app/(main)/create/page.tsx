@@ -5,6 +5,7 @@ import { ArrowLeft, ImagePlus, Clock, Coins, ChevronDown, Loader2 } from "lucide
 import Link from "next/link";
 import { createPredictionAction } from "@/lib/actions/predictions";
 import { useToast } from "@/components/Toast";
+import ParallaxBg from "@/components/ParallaxBg";
 
 const categoryOptions = [
   { label: "ดราม่า",  id: 1 },
@@ -62,7 +63,9 @@ export default function CreatePage() {
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-2xl mx-auto">
+    <div className="relative">
+      <ParallaxBg variant="gold" />
+    <div className="relative p-4 md:p-6 max-w-2xl mx-auto" style={{ zIndex: 1 }}>
       <Link href="/" className="flex items-center gap-2 text-sm text-purple-400 hover:text-purple-300 mb-5 transition-colors">
         <ArrowLeft className="w-4 h-4" /> ยกเลิก
       </Link>
@@ -226,6 +229,7 @@ export default function CreatePage() {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

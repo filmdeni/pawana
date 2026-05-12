@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { ShoppingBag, Coins, Sparkles } from "lucide-react";
+import ParallaxBg from "@/components/ParallaxBg";
 
 const categories = ["แนะนำ", "ไอเท็ม", "กรอบโปรไฟล์", "ฉาย", "เอฟเฟกต์"];
 
@@ -27,7 +28,9 @@ export default function ShopPage() {
   const [buying, setBuying] = useState<number | null>(null);
 
   return (
-    <div className="p-4 md:p-6 max-w-screen-xl mx-auto">
+    <div className="relative">
+      <ParallaxBg variant="pink" />
+    <div className="relative p-4 md:p-6 max-w-screen-xl mx-auto" style={{ zIndex: 1 }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-5 gap-3">
         <div>
@@ -163,6 +166,7 @@ export default function ShopPage() {
           );
         })}
       </div>
+    </div>
     </div>
   );
 }

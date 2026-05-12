@@ -1,5 +1,5 @@
 "use client";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef, useCallback } from "react";
 import { Loader2, Coins, CheckCircle2 } from "lucide-react";
 import { clampPct } from "@/lib/poolDisplay";
 import { castVoteAction } from "@/lib/actions/predictions";
@@ -18,6 +18,46 @@ interface VotePanelProps {
 
 const AMOUNTS = [100, 500, 1000, 2000, 5000];
 
+type FloatItem = { id: number; text: string };
+
+// ── Subtle Web-Audio sounds ──────────────────────────────────────
+function playSelect(yes: boolean) {
+  try {
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(yes ? 440 : 330, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(yes ? 523 : 277, ctx.currentTime + 0.08);
+    gain.gain.setValueAtTime(0.06, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.18);
+  } catch {}
+}
+
+function playSuccess() {
+  try {
+    const ctx = new AudioContext();
+    const notes = [523, 659, 784]; // C5 E5 G5
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      const t = ctx.currentTime + i * 0.1;
+      gain.gain.setValueAtTime(0.07, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+      osc.start(t);
+      osc.stop(t + 0.3);
+    });
+  } catch {}
+}
+
 export default function VotePanel({
   predictionId,
   initialYesPool,
@@ -31,9 +71,12 @@ export default function VotePanel({
   const [amount, setAmount] = useState(500);
   const [isPending, startTransition] = useTransition();
   const [voted, setVoted] = useState(!!userVote);
+  const [floats, setFloats] = useState<FloatItem[]>([]);
+  const [flash, setFlash] = useState(false);
+  const [popKey, setPopKey] = useState<boolean | null>(null);
+  const floatCounter = useRef(0);
   const { success, error: toastError } = useToast();
 
-  // Real-time pool totals via Supabase Realtime
   const { yesPool, noPool, participantCount } = useRealtimeVotes(predictionId, {
     yesPool: initialYesPool,
     noPool: initialNoPool,
@@ -55,6 +98,19 @@ export default function VotePanel({
         )
       : 0;
 
+  const spawnFloat = useCallback((text: string) => {
+    const id = ++floatCounter.current;
+    setFloats((f) => [...f, { id, text }]);
+    setTimeout(() => setFloats((f) => f.filter((x) => x.id !== id)), 1500);
+  }, []);
+
+  function handleChoiceSelect(c: boolean) {
+    setChoice(c);
+    setPopKey(c);
+    playSelect(c);
+    setTimeout(() => setPopKey(null), 300);
+  }
+
   function handleVote() {
     if (choice === null) return;
     startTransition(async () => {
@@ -62,6 +118,10 @@ export default function VotePanel({
       if ("error" in result) {
         toastError("ทำนายไม่สำเร็จ", result.error);
       } else {
+        playSuccess();
+        setFlash(true);
+        spawnFloat(`+${amount.toLocaleString()} พาราฯ`);
+        setTimeout(() => setFlash(false), 700);
         setVoted(true);
         success("ทำนายสำเร็จ! 🔮", `วางเดิมพัน ${amount.toLocaleString()} พาราฯ`);
         onVoteSuccess?.();
@@ -99,7 +159,6 @@ export default function VotePanel({
             <p className="text-xs text-yellow-400">{(userVote?.amount ?? amount).toLocaleString()} พาราฯ</p>
           </div>
         </div>
-        {/* Live pool — updates in real-time */}
         <PoolBar yesPct={yesPct} noPct={noPct} yesPool={yesPool} noPool={noPool} live />
         <p className="text-center text-xs text-purple-500">
           ผู้เข้าร่วม {(participantCount).toLocaleString()} คน · อัปเดต real-time
@@ -110,7 +169,26 @@ export default function VotePanel({
 
   // ── Voting form ────────────────────────────────────────────────
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 relative">
+      {/* Flash overlay on success */}
+      {flash && (
+        <div
+          className="absolute inset-0 rounded-2xl z-20 success-flash-overlay"
+          style={{ background: choice ? "rgba(94,211,166,0.25)" : "rgba(217,107,107,0.25)" }}
+        />
+      )}
+
+      {/* Floating coin popups */}
+      {floats.map((f) => (
+        <div
+          key={f.id}
+          className="absolute left-1/2 -translate-x-1/2 z-30 xp-float-item text-sm font-black"
+          style={{ color: "#D7B56D", bottom: "60px", textShadow: "0 0 12px rgba(215,181,109,0.8)" }}
+        >
+          {f.text}
+        </div>
+      ))}
+
       {/* Live pool bar */}
       <PoolBar yesPct={yesPct} noPct={noPct} yesPool={yesPool} noPool={noPool} live />
 
@@ -119,13 +197,12 @@ export default function VotePanel({
         <p className="text-xs font-semibold text-[var(--text-muted)] mb-2">เลือกฝั่งที่คุณเชื่อ</p>
         <div className="grid grid-cols-2 gap-3">
           <button
-            onClick={() => setChoice(true)}
-            className="btn-yes rounded-xl py-4 font-black text-base transition-all duration-200 relative overflow-hidden"
+            onClick={() => handleChoiceSelect(true)}
+            key={popKey === true ? "yes-pop" : "yes"}
+            className={`btn-yes rounded-xl py-4 font-black text-base relative overflow-hidden ${choice === true ? "selected btn-pop-once" : ""}`}
             style={choice === true ? {
               background: "rgba(94,211,166,0.22)",
               borderColor: "rgba(94,211,166,0.70)",
-              boxShadow: "0 0 24px rgba(94,211,166,0.25)",
-              transform: "translateY(-1px) scale(1.02)",
             } : undefined}
           >
             {choice === true && (
@@ -135,13 +212,12 @@ export default function VotePanel({
             {choice === true && <span className="block text-[10px] opacity-70 font-normal mt-0.5">เลือกแล้ว</span>}
           </button>
           <button
-            onClick={() => setChoice(false)}
-            className="btn-no rounded-xl py-4 font-black text-base transition-all duration-200 relative overflow-hidden"
+            onClick={() => handleChoiceSelect(false)}
+            key={popKey === false ? "no-pop" : "no"}
+            className={`btn-no rounded-xl py-4 font-black text-base relative overflow-hidden ${choice === false ? "selected btn-pop-once" : ""}`}
             style={choice === false ? {
               background: "rgba(217,107,107,0.22)",
               borderColor: "rgba(217,107,107,0.70)",
-              boxShadow: "0 0 24px rgba(217,107,107,0.25)",
-              transform: "translateY(-1px) scale(1.02)",
             } : undefined}
           >
             {choice === false && (
@@ -203,12 +279,13 @@ export default function VotePanel({
       <button
         onClick={handleVote}
         disabled={choice === null || isPending}
-        className="w-full py-3.5 rounded-xl font-black text-sm text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 relative overflow-hidden"
+        className="w-full py-3.5 rounded-xl font-black text-sm text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 relative overflow-hidden active:scale-95"
         style={{
           background: choice === null
             ? "rgba(111,75,255,0.25)"
             : "linear-gradient(135deg, #4B3975, #6F4BFF, #7B61FF)",
           boxShadow: choice !== null && !isPending ? "0 0 28px rgba(111,75,255,0.35)" : undefined,
+          transition: "transform 0.1s ease, box-shadow 0.2s ease, background 0.2s ease",
         }}
       >
         {choice !== null && !isPending && (

@@ -125,43 +125,64 @@ export default function PredictionCard({ p, showComments }: { p: Prediction; sho
       <article className="glass card-hover rounded-2xl overflow-hidden cursor-pointer group flex flex-col h-full">
         {/* Thumbnail */}
         <div className={`relative h-36 bg-gradient-to-br ${cat.bg} flex items-center justify-center overflow-hidden`}>
-          {p.trending && (
-            <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: `linear-gradient(90deg, transparent, ${cat.accent}, transparent)` }} />
-          )}
+          {/* Accent top border */}
+          <div className="absolute top-0 left-0 right-0 h-0.5"
+            style={{ background: `linear-gradient(90deg, transparent, ${cat.accent}, transparent)`, opacity: p.hot || p.trending ? 1 : 0.4 }} />
+
           {p.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={p.imageUrl} alt={p.title} className="w-full h-full object-cover opacity-80" />
+            <img src={p.imageUrl} alt={p.title} className="w-full h-full object-cover transition-opacity duration-300" />
           ) : (
-            <span className="text-6xl select-none opacity-60">{p.image ?? "🔮"}</span>
+            <span className="text-5xl select-none opacity-50 group-hover:opacity-70 transition-opacity duration-300">{p.image ?? "🔮"}</span>
           )}
+
+          {/* Category pill */}
           <span
             className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold text-white backdrop-blur-sm"
             style={{ background: cat.pill }}
           >
             {p.category}
           </span>
-          <span className="absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm text-[11px] font-bold text-orange-300">
-            <Flame className="w-3 h-3 text-orange-400" />
-            {p.participants >= 1000 ? `${(p.participants / 1000).toFixed(1)}K` : p.participants}
-          </span>
-          <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#0e0e1a] to-transparent" />
+
+          {/* HOT / LIVE badge */}
+          {p.hot ? (
+            <span className="absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full backdrop-blur-sm text-[11px] font-black"
+              style={{ background: "rgba(217,107,107,0.25)", border: "1px solid rgba(217,107,107,0.5)", color: "#f87171" }}>
+              <span className="card-live-dot" />
+              LIVE
+            </span>
+          ) : (
+            <span className="absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm text-[11px] font-bold text-orange-300">
+              <Flame className="w-3 h-3 text-orange-400" />
+              {p.participants >= 1000 ? `${(p.participants / 1000).toFixed(1)}K` : p.participants}
+            </span>
+          )}
+
+          {/* Heat glow when featured */}
+          {p.hot && (
+            <div className="absolute inset-0 pointer-events-none"
+              style={{ background: `radial-gradient(ellipse at 50% 100%, ${cat.glow} 0%, transparent 65%)` }} />
+          )}
+
+          <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#0e0e1a] to-transparent" />
         </div>
 
         {/* Body */}
         <div className="p-3.5 flex flex-col gap-2.5 flex-1">
-          <h3 className="text-sm font-semibold text-[var(--text-primary)] leading-snug line-clamp-2 group-hover:text-white transition-colors">
+          <h3 className="text-[15px] font-black text-white leading-snug line-clamp-2 group-hover:text-purple-100 transition-colors"
+            style={{ textShadow: "0 0 24px rgba(111,75,255,0.25)" }}>
             {p.title}
           </h3>
 
-          {/* Progress bar */}
+          {/* Animated progress bar */}
           <div>
-            <div className="flex rounded-full overflow-hidden h-1.5 mb-1" style={{ background: "rgba(255,255,255,0.06)" }}>
-              <div className="progress-yes transition-all duration-700" style={{ width: `${yesW}%` }} />
-              <div className="progress-no transition-all duration-700"  style={{ width: `${noW}%` }} />
+            <div className="flex rounded-full overflow-hidden h-2 mb-1.5 gap-0.5" style={{ background: "rgba(255,255,255,0.06)" }}>
+              <div className="progress-yes card-bar-animate rounded-l-full" style={{ width: `${yesW}%` }} />
+              <div className="progress-no card-bar-animate rounded-r-full"  style={{ width: `${noW}%` }} />
             </div>
-            <div className="flex justify-between text-[10px] font-bold">
-              <span className="text-[#5ED3A6]">ใช่ {yesW}%</span>
-              <span className="text-[#D96B6B]">ไม่ใช่ {noW}%</span>
+            <div className="flex justify-between text-[10px] font-black">
+              <span className="text-[#5ED3A6]">✓ ใช่ {yesW}%</span>
+              <span className="text-[#D96B6B]">✗ ไม่ใช่ {noW}%</span>
             </div>
           </div>
 

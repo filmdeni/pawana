@@ -1,6 +1,7 @@
 import { getSessionUser } from "@/lib/actions/auth";
 import { getUserProfile, getUserVoteHistory } from "@/lib/queries/predictions";
 import ProfileClient from "./ProfileClient";
+import ParallaxBg from "@/components/ParallaxBg";
 
 export default async function ProfilePage() {
   const user = await getSessionUser().catch(() => null);
@@ -16,6 +17,9 @@ export default async function ProfilePage() {
     null;
 
   return (
+    <div className="relative">
+      <ParallaxBg variant="violet" />
+      <div className="relative" style={{ zIndex: 1 }}>
     <ProfileClient
       isOwner={!!user}
       username={profile?.username ?? profile?.display_name ?? "MysticPredictor"}
@@ -32,5 +36,7 @@ export default async function ProfilePage() {
       streak={profile?.streak ?? 0}
       voteHistory={voteHistory}
     />
+      </div>
+    </div>
   );
 }

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Search, Plus, TrendingUp, MessageSquare, Eye, Flame, ChevronUp } from "lucide-react";
 import RankBadge from "@/components/RankBadge";
+import ParallaxBg from "@/components/ParallaxBg";
 
 const posts = [
   {
@@ -86,7 +87,9 @@ export default function BoardPage() {
   const [activeTab, setActiveTab] = useState("ทั้งหมด");
 
   return (
-    <div className="p-4 md:p-6 max-w-screen-xl mx-auto">
+    <div className="relative">
+      <ParallaxBg variant="cyan" />
+    <div className="relative p-4 md:p-6 max-w-screen-xl mx-auto" style={{ zIndex: 1 }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-5 gap-3">
         <div>
@@ -163,6 +166,7 @@ export default function BoardPage() {
           </article>
         ))}
       </div>
+    </div>
     </div>
   );
 }
