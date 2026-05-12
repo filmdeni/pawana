@@ -124,14 +124,24 @@ export default function LiveHeroCard() {
             </span>
           </div>
 
-          {/* Timer — compact inline */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl"
+          {/* Timer + Heat */}
+          <div className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl"
             style={{ background: "rgba(8,5,20,0.80)", border: "1px solid rgba(220,60,40,0.50)" }}>
-            <span style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.40)" }}>⏳</span>
-            <span className="font-black tabular-nums text-sm"
-              style={{ color: "#FF8A65", textShadow: "0 0 16px rgba(255,138,101,0.7)", letterSpacing: "0.04em" }}>
-              {fmtMs(msLeft)}
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.40)" }}>⏳</span>
+              <span className="font-black tabular-nums text-sm"
+                style={{ color: "#FF8A65", textShadow: "0 0 16px rgba(255,138,101,0.7)", letterSpacing: "0.04em" }}>
+                {fmtMs(msLeft)}
+              </span>
+            </div>
+            <div className="flex items-center gap-0.5">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <span key={i} className={i < pred.heat_level ? "fire-flicker" : ""}
+                  style={{ fontSize: i < pred.heat_level ? "0.8rem" : "0.65rem", opacity: i < pred.heat_level ? 1 : 0.15 }}>
+                  🔥
+                </span>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -153,15 +163,6 @@ export default function LiveHeroCard() {
           </span>
           <span style={{ color: "#FF8A65" }}>🔥 กำลังเดือด</span>
           {yesUp && <span style={{ color: "#5ED3A6" }}>⚡ YES พุ่งเร็ว</span>}
-          {/* Heat level */}
-          <span className="ml-auto flex items-center gap-0.5">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <span key={i} className={i < pred.heat_level ? "fire-flicker" : ""}
-                style={{ fontSize: i < pred.heat_level ? "0.85rem" : "0.7rem", opacity: i < pred.heat_level ? 1 : 0.15 }}>
-                🔥
-              </span>
-            ))}
-          </span>
         </div>
 
         {/* Vote bar — full width */}
