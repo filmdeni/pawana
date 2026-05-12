@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, safeGetUser } from "@/lib/supabase/server";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -9,8 +9,7 @@ interface RouteContext {
 export async function GET(_req: NextRequest, { params }: RouteContext) {
   const { id } = await params;
   const supabase = await createClient();
-  const { safeGetUser } = await import("@/lib/supabase/server");
-  const user = await safeGetUser();
+  const user = await safeGetUser(supabase);
 
   const { data: reports } = await supabase
     .from("resolution_reports")
@@ -46,8 +45,7 @@ export async function GET(_req: NextRequest, { params }: RouteContext) {
 export async function POST(req: NextRequest, { params }: RouteContext) {
   const { id } = await params;
   const supabase = await createClient();
-  const { safeGetUser } = await import("@/lib/supabase/server");
-  const user = await safeGetUser();
+  const user = await safeGetUser(supabase);
 
   if (!user) {
     return NextResponse.json({ error: "กรุณาเข้าสู่ระบบ" }, { status: 401 });

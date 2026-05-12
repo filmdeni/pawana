@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, safeGetUser } from "@/lib/supabase/server";
 
 async function assertAdmin(supabase: Awaited<ReturnType<typeof createClient>>) {
-  const { safeGetUser } = await import("@/lib/supabase/server");
-  const user = await safeGetUser();
+  const user = await safeGetUser(supabase);
   if (!user) return false;
   const { data } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
   return !!data?.is_admin;

@@ -1,5 +1,6 @@
 import { createServerClient, type CookieMethodsServer } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export async function createClient() {
   const cookieStore = await cookies();
@@ -22,10 +23,14 @@ export async function createClient() {
   );
 }
 
-/** getUser that never throws — returns null on expired/invalid session and clears auth cookies */
-export async function safeGetUser() {
+/**
+ * getUser that never throws.
+ * Pass an existing client to avoid creating a second one per request.
+ * Returns null on expired/invalid session and clears auth cookies.
+ */
+export async function safeGetUser(client?: SupabaseClient) {
   const cookieStore = await cookies();
-  const supabase = await createClient();
+  const supabase = client ?? (await createClient());
 
   const clearAuthCookies = () => {
     try {

@@ -12,6 +12,8 @@ export interface PredictionRow {
   ends_at: string;
   is_trending: boolean;
   is_featured: boolean;
+  yes_label: string;
+  no_label: string;
   categories: { slug: string; label: string; emoji: string | null } | null;
   profiles: { username: string; display_name: string | null } | null;
 }
@@ -32,7 +34,7 @@ export async function getTrendingPredictions(limit = 8): Promise<PredictionRow[]
       .from("predictions")
       .select(`
         id, title, description, image_url, image_position, yes_pool, no_pool, participant_count,
-        ends_at, is_trending, is_featured,
+        ends_at, is_trending, is_featured, yes_label, no_label,
         categories ( slug, label, emoji ),
         profiles ( username, display_name )
       `)

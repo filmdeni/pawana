@@ -14,6 +14,8 @@ interface VotePanelProps {
   userVote?: { choice: boolean; amount: number } | null;
   initialChoice?: boolean | null;
   onVoteSuccess?: () => void;
+  yesLabel?: string;
+  noLabel?: string;
 }
 
 const AMOUNTS = [100, 500, 1000, 2000, 5000];
@@ -66,6 +68,8 @@ export default function VotePanel({
   userVote,
   initialChoice,
   onVoteSuccess,
+  yesLabel = "ใช่",
+  noLabel = "ไม่ใช่",
 }: VotePanelProps) {
   const [choice, setChoice] = useState<boolean | null>(userVote?.choice ?? initialChoice ?? null);
   const [amount, setAmount] = useState(500);
@@ -136,7 +140,7 @@ export default function VotePanel({
         <p className="text-3xl">⌛</p>
         <p className="font-bold text-[var(--text-primary)]">การทำนายสิ้นสุดแล้ว</p>
         <p className="text-sm text-[var(--text-muted)]">รอประกาศผล</p>
-        <PoolBar yesPct={yesPct} noPct={noPct} yesPool={yesPool} noPool={noPool} />
+        <PoolBar yesPct={yesPct} noPct={noPct} yesPool={yesPool} noPool={noPool} yesLabel={yesLabel} noLabel={noLabel} />
       </div>
     );
   }
@@ -154,12 +158,12 @@ export default function VotePanel({
               userVote != null ? (userVote.choice ? "text-green-400" : "text-red-400")
               : choice === true ? "text-green-400" : choice === false ? "text-red-400" : "text-[var(--text-muted)]"
             }`}>
-              {(userVote?.choice ?? choice) === true ? "✓ ใช่" : (userVote?.choice ?? choice) === false ? "✗ ไม่ใช่" : "—"}
+              {(userVote?.choice ?? choice) === true ? `✓ ${yesLabel}` : (userVote?.choice ?? choice) === false ? `✗ ${noLabel}` : "—"}
             </p>
             <p className="text-xs text-yellow-400">{(userVote?.amount ?? amount).toLocaleString()} พาราฯ</p>
           </div>
         </div>
-        <PoolBar yesPct={yesPct} noPct={noPct} yesPool={yesPool} noPool={noPool} live />
+        <PoolBar yesPct={yesPct} noPct={noPct} yesPool={yesPool} noPool={noPool} live yesLabel={yesLabel} noLabel={noLabel} />
         <p className="text-center text-xs text-purple-500">
           ผู้เข้าร่วม {(participantCount).toLocaleString()} คน · อัปเดต real-time
         </p>
@@ -190,7 +194,7 @@ export default function VotePanel({
       ))}
 
       {/* Live pool bar */}
-      <PoolBar yesPct={yesPct} noPct={noPct} yesPool={yesPool} noPool={noPool} live />
+      <PoolBar yesPct={yesPct} noPct={noPct} yesPool={yesPool} noPool={noPool} live yesLabel={yesLabel} noLabel={noLabel} />
 
       {/* Choice */}
       <div>
@@ -208,7 +212,7 @@ export default function VotePanel({
             {choice === true && (
               <span className="absolute inset-0 bg-gradient-to-b from-white/[0.06] to-transparent pointer-events-none" />
             )}
-            <span className="text-lg mr-1">✓</span> ใช่
+            <span className="text-lg mr-1">✓</span> {yesLabel}
             {choice === true && <span className="block text-[10px] opacity-70 font-normal mt-0.5">เลือกแล้ว</span>}
           </button>
           <button
@@ -223,7 +227,7 @@ export default function VotePanel({
             {choice === false && (
               <span className="absolute inset-0 bg-gradient-to-b from-white/[0.06] to-transparent pointer-events-none" />
             )}
-            <span className="text-lg mr-1">✗</span> ไม่ใช่
+            <span className="text-lg mr-1">✗</span> {noLabel}
             {choice === false && <span className="block text-[10px] opacity-70 font-normal mt-0.5">เลือกแล้ว</span>}
           </button>
         </div>
@@ -296,7 +300,7 @@ export default function VotePanel({
             <Loader2 className="w-4 h-4 animate-spin" /> กำลังประมวลผล...
           </>
         ) : choice !== null ? (
-          `ยืนยัน · ${choice ? "ใช่" : "ไม่ใช่"} ${amount.toLocaleString()} พาราฯ`
+          `ยืนยัน · ${choice ? yesLabel : noLabel} ${amount.toLocaleString()} พาราฯ`
         ) : (
           "เลือกฝั่งก่อน"
         )}
@@ -312,12 +316,16 @@ function PoolBar({
   yesPool,
   noPool,
   live,
+  yesLabel = "ใช่",
+  noLabel = "ไม่ใช่",
 }: {
   yesPct: number;
   noPct: number;
   yesPool: number;
   noPool: number;
   live?: boolean;
+  yesLabel?: string;
+  noLabel?: string;
 }) {
   const { yes: yesW, no: noW } = clampPct(yesPct);
   return (
@@ -327,13 +335,13 @@ function PoolBar({
           className="progress-yes flex items-center justify-center text-xs font-bold text-white transition-all duration-700"
           style={{ width: `${yesW}%` }}
         >
-          ใช่ {yesW}%
+          {yesLabel} {yesW}%
         </div>
         <div
           className="progress-no flex items-center justify-center text-xs font-bold text-white transition-all duration-700"
           style={{ width: `${noW}%` }}
         >
-          ไม่ใช่ {noW}%
+          {noLabel} {noW}%
         </div>
       </div>
       <div className="flex justify-between text-xs">

@@ -71,6 +71,8 @@ export default async function PredictDetailPage({ params }: PageProps) {
         hot: dbPred.is_featured,
         image_url: dbPred.image_url,
         image_position: dbPred.image_position ?? "50% 50%",
+        yesLabel: dbPred.yes_label ?? "ใช่",
+        noLabel: dbPred.no_label ?? "ไม่ใช่",
         createdAt: null as string | null,
       }
     : { ...(MOCK_FALLBACK[id] ?? MOCK_FALLBACK["1"]), categoryEmoji: "", createdAt: null as string | null };
@@ -164,6 +166,8 @@ export default async function PredictDetailPage({ params }: PageProps) {
             endsAt={pred.endsAt}
             userVote={userVote}
             isLoggedIn={!!user}
+            yesLabel={pred.yesLabel}
+            noLabel={pred.noLabel}
           />
 
           {/* ── Stats row ─────────────────────────────────── */}

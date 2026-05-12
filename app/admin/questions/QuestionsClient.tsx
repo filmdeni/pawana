@@ -23,6 +23,8 @@ interface Prediction {
   image_url: string | null;
   image_position: string | null;
   category_id: number | null;
+  yes_label: string | null;
+  no_label: string | null;
   profiles: { username: string }[] | null;
 }
 
@@ -290,6 +292,8 @@ interface CreateFields {
   category_id: number;
   is_featured: boolean;
   is_trending: boolean;
+  yes_label: string;
+  no_label: string;
 }
 
 function CreateModal({
@@ -312,6 +316,8 @@ function CreateModal({
     category_id: 1,
     is_featured: false,
     is_trending: false,
+    yes_label: "ใช่",
+    no_label: "ไม่ใช่",
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -480,6 +486,38 @@ function CreateModal({
                     <ImagePlus className="w-3.5 h-3.5" /> คลิกเพื่ออัปโหลดรูปภาพ
                   </button>
                 )}
+              </div>
+
+              {/* Yes / No labels */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-2">
+                    ปุ่ม <span style={{ color: "#5ED3A6" }}>ใช่</span>
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={30}
+                    value={fields.yes_label}
+                    onChange={e => set("yes_label", e.target.value)}
+                    placeholder="ใช่"
+                    className={inputCls}
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-2">
+                    ปุ่ม <span style={{ color: "#D96B6B" }}>ไม่ใช่</span>
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={30}
+                    value={fields.no_label}
+                    onChange={e => set("no_label", e.target.value)}
+                    placeholder="ไม่ใช่"
+                    className={inputCls}
+                    style={inputStyle}
+                  />
+                </div>
               </div>
 
               <div>
@@ -690,6 +728,8 @@ interface EditFields {
   is_trending: boolean;
   image_url: string | null;
   image_position: string;
+  yes_label: string;
+  no_label: string;
 }
 
 function EditModal({
@@ -716,6 +756,8 @@ function EditModal({
     is_trending: prediction.is_trending,
     image_url: prediction.image_url,
     image_position: prediction.image_position ?? "50% 50%",
+    yes_label: prediction.yes_label ?? "ใช่",
+    no_label: prediction.no_label ?? "ไม่ใช่",
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(prediction.image_url);
@@ -757,6 +799,8 @@ function EditModal({
         is_trending: fields.is_trending,
         image_url: finalImageUrl,
         image_position: fields.image_position,
+        yes_label: fields.yes_label,
+        no_label: fields.no_label,
       };
 
       const res = await fetch(`/api/admin/questions/${prediction.id}`, {
@@ -878,6 +922,38 @@ function EditModal({
                   <ImagePlus className="w-3.5 h-3.5" /> อัปโหลดรูปภาพ
                 </button>
               )}
+            </div>
+
+            {/* Yes / No labels */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-2">
+                  ปุ่ม <span style={{ color: "#5ED3A6" }}>ใช่</span>
+                </label>
+                <input
+                  type="text"
+                  maxLength={30}
+                  value={fields.yes_label}
+                  onChange={e => set("yes_label", e.target.value)}
+                  placeholder="ใช่"
+                  className={inputCls}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-2">
+                  ปุ่ม <span style={{ color: "#D96B6B" }}>ไม่ใช่</span>
+                </label>
+                <input
+                  type="text"
+                  maxLength={30}
+                  value={fields.no_label}
+                  onChange={e => set("no_label", e.target.value)}
+                  placeholder="ไม่ใช่"
+                  className={inputCls}
+                  style={inputStyle}
+                />
+              </div>
             </div>
 
             {/* Ends at */}

@@ -16,6 +16,8 @@ interface VsModalProps {
   endsAt: string;
   userVote?: { choice: boolean; amount: number } | null;
   isLoggedIn: boolean;
+  yesLabel?: string;
+  noLabel?: string;
 }
 
 export default function VsModal({
@@ -29,6 +31,8 @@ export default function VsModal({
   endsAt,
   userVote,
   isLoggedIn,
+  yesLabel = "ใช่",
+  noLabel = "ไม่ใช่",
 }: VsModalProps) {
   const [open, setOpen] = useState(false);
   const [selectedChoice, setSelectedChoice] = useState<boolean | null>(null);
@@ -55,7 +59,7 @@ export default function VsModal({
             className="flex-1 py-5 text-center transition-all hover:brightness-125"
             style={{ background: "rgba(34,197,94,0.15)" }}
           >
-            <p className="text-xs font-semibold text-green-400 mb-1">ใช่</p>
+            <p className="text-xs font-semibold text-green-400 mb-1">{yesLabel}</p>
             <p className="text-4xl font-black text-green-400 leading-none">{yesDisplay}%</p>
             <p className="text-xs text-green-600 mt-2">{yesPool.toLocaleString()} พารา</p>
           </button>
@@ -79,7 +83,7 @@ export default function VsModal({
             className="flex-1 py-5 text-center transition-all hover:brightness-125"
             style={{ background: "rgba(239,68,68,0.15)" }}
           >
-            <p className="text-xs font-semibold text-red-400 mb-1">ไม่ใช่</p>
+            <p className="text-xs font-semibold text-red-400 mb-1">{noLabel}</p>
             <p className="text-4xl font-black text-red-400 leading-none">{noDisplay}%</p>
             <p className="text-xs text-red-600 mt-2">{noPool.toLocaleString()} พารา</p>
           </button>
@@ -121,6 +125,8 @@ export default function VsModal({
               userVote={userVote}
               initialChoice={selectedChoice}
               onVoteSuccess={() => setOpen(false)}
+              yesLabel={yesLabel}
+              noLabel={noLabel}
             />
           </div>
         </div>
