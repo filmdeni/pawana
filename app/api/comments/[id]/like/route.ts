@@ -6,7 +6,8 @@ interface Params { params: Promise<{ id: string }> }
 export async function POST(_req: NextRequest, { params }: Params) {
   const { id: commentId } = await params;
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { safeGetUser } = await import("@/lib/supabase/server");
+  const user = await safeGetUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   // Check if already liked

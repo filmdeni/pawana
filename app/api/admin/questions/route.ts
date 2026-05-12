@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 async function assertAdmin(supabase: Awaited<ReturnType<typeof createClient>>) {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { safeGetUser } = await import("@/lib/supabase/server");
+  const user = await safeGetUser();
   if (!user) return null;
   const { data } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
   return data?.is_admin ? user : null;
@@ -22,6 +23,8 @@ export async function POST(req: NextRequest) {
     is_trending: boolean;
     image_url?: string | null;
     image_position?: string;
+    yes_label?: string;
+    no_label?: string;
   };
 
   if (!body.title || body.title.length < 10)
@@ -39,6 +42,8 @@ export async function POST(req: NextRequest) {
       is_trending: body.is_trending,
       image_url: body.image_url ?? null,
       image_position: body.image_position ?? "50% 50%",
+      yes_label: body.yes_label ?? "ใช่",
+      no_label: body.no_label ?? "ไม่ใช่",
       status: "approved",
       yes_pool: 0,
       no_pool: 0,

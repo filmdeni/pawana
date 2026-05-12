@@ -61,9 +61,8 @@ export async function logoutAction() {
 }
 
 export async function getSessionUser() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
+  const { safeGetUser } = await import("@/lib/supabase/server");
+  return safeGetUser();
 }
 
 export type UpdateProfileResult = { error: string } | { success: true; avatarUrl?: string };
