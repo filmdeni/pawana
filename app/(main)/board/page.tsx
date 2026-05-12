@@ -146,20 +146,25 @@ export default function BoardPage() {
                   {post.title}
                 </h3>
                 <p className="text-xs text-[var(--text-muted)] line-clamp-1 mb-2">{post.body}</p>
-                <div className="flex items-center gap-4 text-xs text-[var(--text-muted)]">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-5 h-5 rounded-full bg-gradient-to-br from-violet-600 to-purple-900 flex items-center justify-center text-[10px] font-bold">{post.author[0]}</div>
-                    <span>{post.author}</span>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] min-w-0">
+                    <div className="w-5 h-5 rounded-full bg-gradient-to-br from-violet-600 to-purple-900 flex items-center justify-center text-[10px] font-bold flex-shrink-0">{post.author[0]}</div>
+                    <span className="truncate max-w-[100px]">{post.author}</span>
                     <RankBadge tier={post.tier} />
+                    <span className="text-purple-600 flex-shrink-0">·</span>
+                    <span className="flex-shrink-0">{post.time}</span>
                   </div>
-                  <span className="text-purple-600">·</span>
-                  <span>{post.time}</span>
-                  <span className="flex items-center gap-0.5 ml-auto">
-                    <MessageSquare className="w-3 h-3" /> {post.comments}
-                  </span>
-                  <span className="flex items-center gap-0.5">
-                    <Eye className="w-3 h-3" /> {post.views.toLocaleString()}
-                  </span>
+                  <div className="flex items-center gap-3 text-xs text-[var(--text-muted)]">
+                    <span className="flex items-center gap-1">
+                      <MessageSquare className="w-3 h-3" /> {post.comments}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Eye className="w-3 h-3" /> {post.views.toLocaleString()}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <TrendingUp className="w-3 h-3" /> {post.votes}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
