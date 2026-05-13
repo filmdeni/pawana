@@ -2,30 +2,32 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-export type VoteResult = { error: string } | { success: true; newYesPool: number; newNoPool: number };
+export type VoteResult = { error: string } | { success: true; newYesPool: number; newNoPool: number; newOptionPools?: number[] };
 
 export async function castVoteAction(
   predictionId: string,
-  choice: boolean,
+  choiceOrIndex: boolean | number,
   amount: number
 ): Promise<VoteResult> {
-  if (amount < 10) return { error: "จำนวนขั้นต่ำคือ 10 พาราฯ" };
-  if (amount > 100000) return { error: "จำนวนสูงสุดคือ 100,000 พาราฯ" };
+  if (amount < 10) return { error: "จำนวนขั้นต่ำคือ 10 ญาณฯ" };
+  if (amount > 100000) return { error: "จำนวนสูงสุดคือ 100,000 ญาณฯ" };
+
+  const isMulti = typeof choiceOrIndex === "number";
+  const choice = isMulti ? (choiceOrIndex === 0) : (choiceOrIndex as boolean);
+  const choiceIndex = isMulti ? (choiceOrIndex as number) : null;
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "กรุณาเข้าสู่ระบบก่อน" };
 
-  // Check balance
   const { data: profile } = await supabase
     .from("profiles")
     .select("coins")
     .eq("id", user.id)
     .single();
 
-  if (!profile || profile.coins < amount) return { error: "พาราฯ ไม่เพียงพอ" };
+  if (!profile || profile.coins < amount) return { error: "ญาณฯ ไม่เพียงพอ" };
 
-  // Check existing vote
   const { data: existing } = await supabase
     .from("votes")
     .select("id")
@@ -35,34 +37,57 @@ export async function castVoteAction(
 
   if (existing) return { error: "คุณได้ทำนายหัวข้อนี้แล้ว" };
 
-  // Insert vote (trigger will update pools + deduct coins)
-  const { error } = await supabase.from("votes").insert({
+  const votePayload: Record<string, unknown> = {
     prediction_id: predictionId,
     user_id: user.id,
     choice,
     amount,
-  });
+  };
+  if (choiceIndex !== null) votePayload.choice_index = choiceIndex;
 
+  const { error } = await supabase.from("votes").insert(votePayload);
   if (error) return { error: "เกิดข้อผิดพลาด กรุณาลองใหม่" };
 
-  // Fetch updated pools + prediction title
-  const { data: pred } = await supabase
+  // For multi-option: update option_pools manually
+  let newOptionPools: number[] | undefined;
+  if (isMulti) {
+    const { data: pred } = await supabase
+      .from("predictions")
+      .select("option_pools")
+      .eq("id", predictionId)
+      .single();
+    const pools: number[] = (pred?.option_pools as number[]) ?? [];
+    pools[choiceIndex as number] = (pools[choiceIndex as number] ?? 0) + amount;
+    await supabase.from("predictions").update({ option_pools: pools }).eq("id", predictionId);
+    newOptionPools = pools;
+  }
+
+  const { data: updated } = await supabase
     .from("predictions")
-    .select("yes_pool, no_pool, title")
+    .select("yes_pool, no_pool, title, options")
     .eq("id", predictionId)
     .single();
 
-  // Save notification to DB
+  const options = updated?.options as string[] | null;
+  const choiceLabel = isMulti
+    ? (options?.[choiceIndex as number] ?? `ตัวเลือก ${(choiceIndex as number) + 1}`)
+    : (choice ? "ใช่" : "ไม่ใช่");
+
   await supabase.from("notifications").insert({
     user_id: user.id,
     type: "vote",
     title: "ทำนายสำเร็จ 🔮",
-    body: `คุณวางเดิมพัน ${amount.toLocaleString()} พาราฯ ใน "${pred?.title ?? "คำทำนาย"}" — ${choice ? "ใช่" : "ไม่ใช่"}`,
-    data: { prediction_id: predictionId, choice, amount },
+    body: `คุณวางเดิมพัน ${amount.toLocaleString()} ญาณฯ ใน "${updated?.title ?? "คำทำนาย"}" — ${choiceLabel}`,
+    data: { prediction_id: predictionId, choice, choice_index: choiceIndex, amount },
   });
 
   revalidatePath(`/predict/${predictionId}`);
-  return { success: true, newYesPool: pred?.yes_pool ?? 0, newNoPool: pred?.no_pool ?? 0 };
+  return {
+    success: true,
+    newYesPool: updated?.yes_pool ?? 0,
+    newNoPool: updated?.no_pool ?? 0,
+    newOptionPools,
+  };
 }
 
 export async function createPredictionAction(formData: FormData) {
@@ -77,6 +102,13 @@ export async function createPredictionAction(formData: FormData) {
   const reward = Number(formData.get("reward") ?? 0);
   const imageFile = formData.get("image") as File | null;
   const imagePosition = (formData.get("image_position") as string | null) ?? "50% 50%";
+  const subcategory = (formData.get("subcategory") as string | null) || null;
+  const optionsRaw = formData.get("options") as string | null;
+  const options: string[] = optionsRaw ? JSON.parse(optionsRaw) : ["ใช่", "ไม่ใช่"];
+  const yesLabel = options[0] ?? "ใช่";
+  const noLabel = options[1] ?? "ไม่ใช่";
+  const isMultiOption = options.length > 2;
+  const optionPools = isMultiOption ? options.map((_, i) => i === 0 ? reward : 0) : null;
 
   if (!title || title.length < 10) return { error: "หัวข้อต้องมีอย่างน้อย 10 ตัวอักษร" };
   if (!endsAt) return { error: "กรุณาเลือกวันสิ้นสุด" };
@@ -94,17 +126,26 @@ export async function createPredictionAction(formData: FormData) {
     imageUrl = publicData.publicUrl;
   }
 
-  const { data, error } = await supabase.from("predictions").insert({
+  const insertPayload: Record<string, unknown> = {
     creator_id: user.id,
     title,
     description,
     category_id: categoryId,
+    subcategory,
     ends_at: endsAt,
     yes_pool: reward,
     no_pool: 0,
     image_url: imageUrl,
     image_position: imagePosition,
-  }).select("id").single();
+    yes_label: yesLabel,
+    no_label: noLabel,
+  };
+  if (isMultiOption) {
+    insertPayload.options = options;
+    insertPayload.option_pools = optionPools;
+  }
+
+  const { data, error } = await supabase.from("predictions").insert(insertPayload).select("id").single();
 
   if (error) return { error: "เกิดข้อผิดพลาด: " + error.message };
 

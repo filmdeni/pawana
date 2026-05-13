@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
 
   const amt = Number(amount);
   if (!amt || amt < 10 || amt > 100000) {
-    return NextResponse.json({ error: "จำนวนต้องอยู่ระหว่าง 10–100,000 พาราฯ" }, { status: 400 });
+    return NextResponse.json({ error: "จำนวนต้องอยู่ระหว่าง 10–100,000 ญาณฯ" }, { status: 400 });
   }
 
   // Check balance
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (!profile || profile.coins < amt) {
-    return NextResponse.json({ error: "พาราฯ ไม่เพียงพอ" }, { status: 400 });
+    return NextResponse.json({ error: "ญาณฯ ไม่เพียงพอ" }, { status: 400 });
   }
 
   // Check duplicate vote

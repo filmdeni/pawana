@@ -3,17 +3,28 @@ import dynamic from "next/dynamic";
 import { useWinNotification } from "@/lib/hooks/useWinNotification";
 
 const WinBanner = dynamic(() => import("@/components/WinBanner"), { ssr: false });
+const LoserBanner = dynamic(() => import("@/components/LoserBanner"), { ssr: false });
 
 export default function WinNotificationLayer({ userId }: { userId: string | null }) {
-  const { winEvent, dismiss } = useWinNotification(userId);
+  const { resultEvent, dismiss } = useWinNotification(userId);
 
-  if (!winEvent) return null;
+  if (!resultEvent) return null;
+
+  if (resultEvent.type === "win") {
+    return (
+      <WinBanner
+        coins={resultEvent.coins}
+        xp={resultEvent.xp}
+        predictionTitle={resultEvent.predictionTitle}
+        onClose={dismiss}
+      />
+    );
+  }
 
   return (
-    <WinBanner
-      coins={winEvent.coins}
-      xp={winEvent.xp}
-      predictionTitle={winEvent.predictionTitle}
+    <LoserBanner
+      xp={resultEvent.xp}
+      predictionTitle={resultEvent.predictionTitle}
       onClose={dismiss}
     />
   );

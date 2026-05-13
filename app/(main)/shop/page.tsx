@@ -8,7 +8,7 @@ const categories = ["แนะนำ", "ไอเท็ม", "กรอบโป
 const items = [
   { id: 1, name: "ซุพพีเชส จักรวาล",         type: "บูสต์", desc: "เพิ่มความน่าจะเป็น +10% เป็นเวลา 7 วัน", price: 2000, rarity: "epic",      emoji: "🔮", featured: true },
   { id: 2, name: "พิมคำทำนายอนาคต",            type: "ไอเท็ม",desc: "เพิ่มคำเตือนสำหรับการทำนาย",           price: 1500, rarity: "rare",      emoji: "📜" },
-  { id: 3, name: "เหรียญนำโชค",                type: "บูสต์", desc: "รับพาราเพิ่ม +20% เป็นเวลา 3 วัน",     price: 1000, rarity: "uncommon",  emoji: "🪙" },
+  { id: 3, name: "เหรียญนำโชค",                type: "บูสต์", desc: "รับญาณเพิ่ม +20% เป็นเวลา 3 วัน",     price: 1000, rarity: "uncommon",  emoji: "🪙" },
   { id: 4, name: "กล่องสุ่มไอเท็ม",           type: "กล่อง", desc: "สุ่มรับไอเท็มสุดหายาก",                price: 2500, rarity: "legendary", emoji: "📦" },
   { id: 5, name: "กรอบโปรไฟล์ Cosmic",        type: "กรอบ",  desc: "กรอบโปรไฟล์สไตล์จักรวาลหายาก",        price: 1200, rarity: "rare",      emoji: "🌌" },
   { id: 6, name: "กรอบ Gold Crown",            type: "กรอบ",  desc: "แสดงถึงสถานะสูงสุด",                   price: 1500, rarity: "epic",      emoji: "👑" },
@@ -37,7 +37,7 @@ export default function ShopPage() {
           <h1 className="text-xl font-black flex items-center gap-2 gradient-gold">
             <ShoppingBag className="w-5 h-5 text-[#D7B56D]" /> ร้านค้า
           </h1>
-          <p className="text-sm text-[var(--text-muted)] mt-0.5">ใช้พาราฯ เพื่อซื้อไอเท็มพิเศษ</p>
+          <p className="text-sm text-[var(--text-muted)] mt-0.5">ใช้ญาณฯ เพื่อซื้อไอเท็มพิเศษ</p>
         </div>
         <div
           className="flex items-center gap-2 px-4 py-2 rounded-xl"
@@ -45,7 +45,7 @@ export default function ShopPage() {
         >
           <Coins className="w-4 h-4 text-[#D7B56D]" />
           <span className="font-black text-[#D7B56D] glow-text-gold">12,450</span>
-          <span className="text-xs text-[var(--text-muted)]">พาราฯ</span>
+          <span className="text-xs text-[var(--text-muted)]">ญาณฯ</span>
         </div>
       </div>
 
@@ -91,7 +91,7 @@ export default function ShopPage() {
                 boxShadow: "0 0 24px rgba(215,181,109,0.35)",
               }}
             >
-              <Coins className="w-4 h-4" /> ซื้อ 2,000 พาราฯ
+              <Coins className="w-4 h-4" /> ซื้อ 2,000 ญาณฯ
             </button>
           </div>
         </div>
@@ -159,7 +159,7 @@ export default function ShopPage() {
                     boxShadow: isBuying ? `0 0 12px ${r.shadow}` : undefined,
                   }}
                 >
-                  <Coins className="w-3 h-3" /> {item.price.toLocaleString()} พาราฯ
+                  <Coins className="w-3 h-3" /> {item.price.toLocaleString()} ญาณฯ
                 </button>
               </div>
             </div>

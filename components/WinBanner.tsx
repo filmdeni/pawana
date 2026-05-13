@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef } from "react";
+import Image from "next/image";
 
 interface WinBannerProps {
   coins: number;
@@ -66,9 +67,9 @@ export default function WinBanner({ coins, xp, predictionTitle, onClose }: WinBa
         {/* Reward chips */}
         <div className="win-rewards">
           <div className="win-chip win-chip-coins">
-            <span className="win-chip-icon">🪙</span>
+            <Image src="/images/point2.png" alt="coin" width={18} height={18} className="win-chip-icon" />
             <span className="win-chip-value">+{coins.toLocaleString()}</span>
-            <span className="win-chip-label">พาราฯ</span>
+            <span className="win-chip-label">ญาณฯ</span>
           </div>
           <div className="win-chip win-chip-xp">
             <span className="win-chip-icon">⚡</span>

@@ -129,7 +129,7 @@ export default function ProfileClient({
 
           <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
             {[
-              { label: "พาราฯ", value: coins.toLocaleString(), icon: null, color: "text-yellow-400" },
+              { label: "ญาณฯ", value: coins.toLocaleString(), icon: null, color: "text-yellow-400" },
               { label: "ความแม่น", value: `${accuracy}%`, icon: "🎯", color: "text-green-400" },
               { label: "ทำนายแล้ว", value: totalPredictions.toLocaleString(), icon: "🔮", color: "text-purple-400" },
               { label: "อันดับโลก", value: rankPosition ? `#${rankPosition}` : "—", icon: "🏆", color: "text-yellow-400" },
@@ -259,7 +259,7 @@ export default function ProfileClient({
                         ? <span className="text-red-400">-{h.amount.toLocaleString()}</span>
                         : <span className="text-[var(--text-muted)]">{h.amount.toLocaleString()}</span>}
                     </p>
-                    <p className="text-[10px] text-[var(--text-muted)]">พาราฯ</p>
+                    <p className="text-[10px] text-[var(--text-muted)]">ญาณฯ</p>
                   </div>
                 </Link>
               );

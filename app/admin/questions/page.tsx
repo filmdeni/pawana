@@ -5,7 +5,7 @@ export default async function AdminQuestionsPage() {
   const supabase = await createClient();
   const { data: predictions } = await supabase
     .from("predictions")
-    .select("id, title, description, status, resolution, yes_pool, no_pool, participant_count, ends_at, created_at, is_featured, is_trending, image_url, image_position, category_id, yes_label, no_label, profiles(username)")
+    .select("id, title, description, status, resolution, yes_pool, no_pool, participant_count, ends_at, created_at, is_featured, is_trending, image_url, image_position, category_id, subcategory, yes_label, no_label, profiles(username)")
     .order("created_at", { ascending: false });
 
   return (

@@ -150,7 +150,7 @@ export default function SettingsPage() {
       {/* Danger zone */}
       <div className="glass rounded-2xl p-5 border border-red-500/20">
         <h2 className="text-sm font-bold text-red-400 mb-3">โซนอันตราย</h2>
-        <p className="text-xs text-[var(--text-muted)] mb-3">การลบบัญชีไม่สามารถย้อนกลับได้ พาราฯ และข้อมูลทั้งหมดจะหายไป</p>
+        <p className="text-xs text-[var(--text-muted)] mb-3">การลบบัญชีไม่สามารถย้อนกลับได้ ญาณฯ และข้อมูลทั้งหมดจะหายไป</p>
         <button className="px-4 py-2 rounded-xl text-sm font-semibold border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-all">
           ลบบัญชี
         </button>

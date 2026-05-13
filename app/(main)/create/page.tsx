@@ -1,7 +1,7 @@
 "use client";
 import { useState, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ImagePlus, Clock, Coins, ChevronDown, Loader2 } from "lucide-react";
+import { ArrowLeft, ImagePlus, Clock, Coins, ChevronDown, Loader2, Plus, X as XIcon } from "lucide-react";
 import Link from "next/link";
 import { createPredictionAction } from "@/lib/actions/predictions";
 import { useToast } from "@/components/Toast";
@@ -17,6 +17,11 @@ const categoryOptions = [
   { label: "อื่นๆ",  id: 6 },
 ];
 
+const subcategoryMap: Record<number, string[]> = {
+  3: ["มวย", "ฟุตบอล", "บาสเกตบอล", "วอลเลย์บอล", "อีสปอร์ต", "อื่นๆ"],
+  2: ["PC", "มือถือ", "คอนโซล"],
+};
+
 const durationDays: Record<string, number> = {
   "1 วัน": 1, "3 วัน": 3, "7 วัน": 7, "14 วัน": 14, "30 วัน": 30,
 };
@@ -28,10 +33,12 @@ export default function CreatePage() {
   const { success, error: toastError } = useToast();
   const [categoryId, setCategoryId] = useState(1);
   const [categoryLabel, setCategoryLabel] = useState("ดราม่า");
+  const [subcategory, setSubcategory] = useState<string | null>(null);
   const [duration, setDuration] = useState("7 วัน");
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [reward, setReward] = useState(500);
+  const [options, setOptions] = useState<string[]>(["ใช่", "ไม่ใช่"]);
   const [step, setStep] = useState(1);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -54,6 +61,8 @@ export default function CreatePage() {
       fd.set("ends_at", endsAt);
       fd.set("reward", String(reward));
       fd.set("image_position", imagePosition);
+      fd.set("options", JSON.stringify(options.filter(o => o.trim())));
+      if (subcategory) fd.set("subcategory", subcategory);
       if (imageFile) fd.set("image", imageFile);
 
       const result = await createPredictionAction(fd);
@@ -76,7 +85,7 @@ export default function CreatePage() {
 
       <div className="mb-6">
         <h1 className="text-xl font-black gradient-gold mb-1">สร้างหัวข้อทำนาย</h1>
-        <p className="text-sm text-[var(--text-muted)]">ตั้งหัวข้อที่น่าสนใจ และรับพาราฯ เมื่อมีผู้เข้าร่วม</p>
+        <p className="text-sm text-[var(--text-muted)]">ตั้งหัวข้อที่น่าสนใจ และรับญาณฯ เมื่อมีผู้เข้าร่วม</p>
       </div>
 
       {/* Step indicator */}
@@ -103,10 +112,21 @@ export default function CreatePage() {
           </label>
           <div className="flex flex-wrap gap-2">
             {categoryOptions.map((c) => (
-              <button key={c.id} onClick={() => { setCategoryId(c.id); setCategoryLabel(c.label); }}
+              <button key={c.id} onClick={() => { setCategoryId(c.id); setCategoryLabel(c.label); setSubcategory(null); }}
                 className={`chip ${categoryLabel === c.label ? "active" : ""}`}>{c.label}</button>
             ))}
           </div>
+          {subcategoryMap[categoryId] && (
+            <div className="mt-3">
+              <p className="text-xs text-[var(--text-muted)] mb-2">ประเภทย่อย</p>
+              <div className="flex flex-wrap gap-2">
+                {subcategoryMap[categoryId].map((s) => (
+                  <button key={s} type="button" onClick={() => setSubcategory(subcategory === s ? null : s)}
+                    className={`chip ${subcategory === s ? "active" : ""}`}>{s}</button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Title */}
@@ -123,11 +143,55 @@ export default function CreatePage() {
             className="w-full bg-white/5 border border-[rgba(124,58,237,0.3)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-purple-500/60 transition-all resize-none"
           />
           <div className="flex justify-between mt-1">
-            <p className="text-xs text-[var(--text-muted)]">ตั้งเป็นคำถาม ใช่/ไม่ใช่ที่ชัดเจน</p>
+            <p className="text-xs text-[var(--text-muted)]">ตั้งเป็นคำถามที่ชัดเจน</p>
             <span className={`text-xs ${title.length > 100 ? "text-orange-400" : "text-[var(--text-muted)]"}`}>
               {title.length}/120
             </span>
           </div>
+        </div>
+
+        {/* Options */}
+        <div>
+          <label className="text-sm font-semibold text-[var(--text-primary)] block mb-2">
+            ตัวเลือก <span className="text-red-400">*</span>
+          </label>
+          <div className="space-y-2">
+            {options.map((opt, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <span className="w-6 text-center text-xs font-bold text-[var(--text-muted)] flex-shrink-0">{i + 1}</span>
+                <input
+                  type="text"
+                  value={opt}
+                  onChange={(e) => {
+                    const next = [...options];
+                    next[i] = e.target.value;
+                    setOptions(next);
+                  }}
+                  maxLength={40}
+                  placeholder={`ตัวเลือกที่ ${i + 1}`}
+                  className="flex-1 bg-white/5 border border-[rgba(124,58,237,0.3)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-purple-500/60 transition-all"
+                />
+                {options.length > 2 && (
+                  <button
+                    type="button"
+                    onClick={() => setOptions(options.filter((_, idx) => idx !== i))}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-500/20 text-[var(--text-muted)] hover:text-red-400 transition-colors flex-shrink-0"
+                  >
+                    <XIcon className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          {options.length < 5 && (
+            <button
+              type="button"
+              onClick={() => setOptions([...options, ""])}
+              className="mt-2 flex items-center gap-1.5 text-sm text-purple-400 hover:text-purple-300 transition-colors"
+            >
+              <Plus className="w-4 h-4" /> เพิ่มตัวเลือก
+            </button>
+          )}
         </div>
 
         {/* Description */}

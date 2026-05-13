@@ -78,6 +78,7 @@ export default function CommentSection({ predictionId }: CommentSectionProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string | null>(null);
+  const [currentInitial, setCurrentInitial] = useState<string>("?");
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -107,10 +108,12 @@ export default function CommentSection({ predictionId }: CommentSectionProps) {
       setCurrentUserId(data.user.id);
       const { data: profile } = await supabase
         .from("profiles")
-        .select("avatar_url")
+        .select("avatar_url, display_name, username")
         .eq("id", data.user.id)
         .single();
       if (profile?.avatar_url) setCurrentAvatarUrl(profile.avatar_url);
+      const name = profile?.display_name ?? profile?.username ?? "";
+      if (name) setCurrentInitial(name[0]?.toUpperCase() ?? "?");
     });
     fetchComments();
   }, [fetchComments]);
@@ -210,7 +213,7 @@ export default function CommentSection({ predictionId }: CommentSectionProps) {
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-600 to-purple-900 border border-purple-500/50 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-1 overflow-hidden">
           {currentAvatarUrl
             ? <Image src={currentAvatarUrl} alt="avatar" width={32} height={32} className="w-full h-full object-cover" />
-            : currentUserId ? "U" : "?"}
+            : currentInitial}
         </div>
         <div className="flex-1 flex gap-2">
           <input

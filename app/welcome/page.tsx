@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Star, TrendingUp, Shield, Users, Trophy, ArrowRight, Zap } from "lucide-react";
 
 const features = [
-  { icon: TrendingUp, title: "ทำนายแล้วรับพาราฯ",  desc: "เดิมพันด้วย Virtual Points รับผลตอบแทนเมื่อทำนายถูก",      color: "text-purple-400" },
+  { icon: TrendingUp, title: "ทำนายแล้วรับญาณฯ",  desc: "เดิมพันด้วย Virtual Points รับผลตอบแทนเมื่อทำนายถูก",      color: "text-purple-400" },
   { icon: Trophy,     title: "แข่งขันชิงอันดับ",   desc: "ขึ้น Leaderboard พิสูจน์ว่าคุณคือนักพยากรณ์ที่ดีที่สุด",   color: "text-yellow-400" },
   { icon: Users,      title: "ชุมชนนักพยากรณ์",   desc: "แลกเปลี่ยนมุมมองกับชุมชนนักทำนายทั่วประเทศไทย",            color: "text-green-400" },
   { icon: Shield,     title: "ปลอดภัย 100%",       desc: "ไม่ใช่การพนัน ใช้ Virtual Points เพื่อความสนุกและทักษะ",   color: "text-blue-400" },
@@ -152,10 +152,10 @@ export default function WelcomePage() {
             <div className="relative z-10">
               <p className="text-4xl mb-3 float">🔮</p>
               <h2 className="text-2xl font-black text-white mb-2">พร้อมเป็นตำนานแล้วหรือยัง?</h2>
-              <p className="text-sm text-purple-200/80 mb-6">สมัครฟรีวันนี้ รับ 1,000 พาราฯ เพื่อเริ่มต้น</p>
+              <p className="text-sm text-purple-200/80 mb-6">สมัครฟรีวันนี้ รับ 1,000 ญาณฯ เพื่อเริ่มต้น</p>
               <Link href="/register"
                 className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl font-black text-base bg-gradient-to-r from-yellow-500 to-yellow-600 text-black hover:from-yellow-400 hover:to-yellow-500 transition-all glow-gold">
-                สมัครฟรี รับ 1,000 พาราฯ <Zap className="w-5 h-5" />
+                สมัครฟรี รับ 1,000 ญาณฯ <Zap className="w-5 h-5" />
               </Link>
             </div>
           </div>

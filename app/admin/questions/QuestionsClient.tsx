@@ -23,6 +23,7 @@ interface Prediction {
   image_url: string | null;
   image_position: string | null;
   category_id: number | null;
+  subcategory: string | null;
   yes_label: string | null;
   no_label: string | null;
   profiles: { username: string }[] | null;
@@ -276,6 +277,11 @@ export default function QuestionsClient({ predictions: initial }: { predictions:
 
 /* ── Create Modal ───────────────────────────────────────────── */
 
+const SUBCATEGORY_MAP: Record<number, string[]> = {
+  3: ["มวย", "ฟุตบอล", "บาสเกตบอล", "วอลเลย์บอล", "อีสปอร์ต", "อื่นๆ"],
+  2: ["PC", "มือถือ", "คอนโซล"],
+};
+
 const CAT_CONFIG: Record<string, { bg: string; pill: string; accent: string }> = {
   ดราม่า:  { bg: "from-rose-950 via-pink-900 to-rose-950",       pill: "rgba(244,63,94,0.85)",  accent: "#f43f5e" },
   เกม:     { bg: "from-indigo-950 via-violet-900 to-indigo-950", pill: "rgba(99,102,241,0.85)", accent: "#818cf8" },
@@ -290,6 +296,7 @@ interface CreateFields {
   description: string;
   ends_at: string;
   category_id: number;
+  subcategory: string | null;
   is_featured: boolean;
   is_trending: boolean;
   yes_label: string;
@@ -314,6 +321,7 @@ function CreateModal({
     description: "",
     ends_at: defaultEndsAt(),
     category_id: 1,
+    subcategory: null,
     is_featured: false,
     is_trending: false,
     yes_label: "ใช่",
@@ -414,7 +422,7 @@ function CreateModal({
                     <button
                       type="button"
                       key={c.id}
-                      onClick={() => set("category_id", c.id)}
+                      onClick={() => { set("category_id", c.id); set("subcategory", null); }}
                       className="px-3 py-1.5 rounded-xl text-xs font-medium transition-all"
                       style={fields.category_id === c.id
                         ? { background: "#6F4BFF", color: "#fff" }
@@ -424,6 +432,26 @@ function CreateModal({
                     </button>
                   ))}
                 </div>
+                {SUBCATEGORY_MAP[fields.category_id] && (
+                  <div className="mt-3">
+                    <p className="text-xs text-[var(--text-muted)] mb-2">ประเภทย่อย</p>
+                    <div className="flex flex-wrap gap-2">
+                      {SUBCATEGORY_MAP[fields.category_id].map(s => (
+                        <button
+                          type="button"
+                          key={s}
+                          onClick={() => set("subcategory", fields.subcategory === s ? null : s)}
+                          className="px-3 py-1.5 rounded-xl text-xs font-medium transition-all"
+                          style={fields.subcategory === s
+                            ? { background: "#6F4BFF", color: "#fff" }
+                            : { background: "#12101C", color: "var(--text-muted)", border: "1px solid #2A1F45" }}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -724,6 +752,7 @@ interface EditFields {
   description: string;
   ends_at: string;
   category_id: number;
+  subcategory: string | null;
   is_featured: boolean;
   is_trending: boolean;
   image_url: string | null;
@@ -752,6 +781,7 @@ function EditModal({
     description: prediction.description ?? "",
     ends_at: toLocalDatetime(prediction.ends_at),
     category_id: prediction.category_id ?? 1,
+    subcategory: prediction.subcategory ?? null,
     is_featured: prediction.is_featured,
     is_trending: prediction.is_trending,
     image_url: prediction.image_url,
@@ -795,6 +825,7 @@ function EditModal({
         description: fields.description,
         ends_at: new Date(fields.ends_at).toISOString(),
         category_id: fields.category_id,
+        subcategory: fields.subcategory,
         is_featured: fields.is_featured,
         is_trending: fields.is_trending,
         image_url: finalImageUrl,
@@ -848,7 +879,7 @@ function EditModal({
                   <button
                     type="button"
                     key={c.id}
-                    onClick={() => set("category_id", c.id)}
+                    onClick={() => { set("category_id", c.id); set("subcategory", null); }}
                     className="px-3 py-1.5 rounded-xl text-xs font-medium transition-all"
                     style={fields.category_id === c.id
                       ? { background: "#6F4BFF", color: "#fff" }
@@ -858,6 +889,26 @@ function EditModal({
                   </button>
                 ))}
               </div>
+              {SUBCATEGORY_MAP[fields.category_id] && (
+                <div className="mt-3">
+                  <p className="text-xs text-[var(--text-muted)] mb-2">ประเภทย่อย</p>
+                  <div className="flex flex-wrap gap-2">
+                    {SUBCATEGORY_MAP[fields.category_id].map(s => (
+                      <button
+                        type="button"
+                        key={s}
+                        onClick={() => set("subcategory", fields.subcategory === s ? null : s)}
+                        className="px-3 py-1.5 rounded-xl text-xs font-medium transition-all"
+                        style={fields.subcategory === s
+                          ? { background: "#6F4BFF", color: "#fff" }
+                          : { background: "#12101C", color: "var(--text-muted)", border: "1px solid #2A1F45" }}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Title */}

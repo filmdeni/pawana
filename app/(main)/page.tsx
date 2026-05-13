@@ -5,7 +5,7 @@ import { Flame, TrendingUp, Zap, ChevronRight, MessageSquare } from "lucide-reac
 import PredictionCard, { Prediction } from "@/components/PredictionCard";
 import LiveHeroCard from "@/components/LiveHeroCard";
 import ParallaxBg from "@/components/ParallaxBg";
-import { getTrendingPredictions, PredictionRow } from "@/lib/queries/predictions";
+import { getTrendingPredictions, getUserVotesMap, getLeaderboard, PredictionRow } from "@/lib/queries/predictions";
 import { getSessionUser } from "@/lib/actions/auth";
 import { clampPct } from "@/lib/poolDisplay";
 
@@ -68,8 +68,27 @@ const MOCK_POSTS = [
 const RANK_BADGE: Record<number, string> = { 1: "👑", 2: "🥈", 3: "🥉" };
 
 async function TrendingSection() {
-  const dbPredictions = await getTrendingPredictions(4).catch(() => []);
-  const predictions: Prediction[] = dbPredictions.length > 0 ? dbPredictions.map(rowToCard) : MOCK;
+  const [dbPredictions, user] = await Promise.all([
+    getTrendingPredictions(4).catch(() => []),
+    getSessionUser().catch(() => null),
+  ]);
+
+  let votesMap: Record<string, { choiceLabel: string; amount: number }> = {};
+  if (user && dbPredictions.length > 0) {
+    const raw = await getUserVotesMap(dbPredictions.map((r) => r.id), user.id);
+    for (const [pid, v] of Object.entries(raw)) {
+      const row = dbPredictions.find((r) => r.id === pid);
+      const label = v.choice_index != null
+        ? (row?.options?.[v.choice_index] ?? (v.choice ? row?.yes_label ?? "ใช่" : row?.no_label ?? "ไม่ใช่"))
+        : (v.choice ? row?.yes_label ?? "ใช่" : row?.no_label ?? "ไม่ใช่");
+      votesMap[pid] = { choiceLabel: label, amount: v.amount };
+    }
+  }
+
+  const predictions: Prediction[] = dbPredictions.length > 0
+    ? dbPredictions.map((r) => ({ ...rowToCard(r), userVote: votesMap[r.id] ?? null }))
+    : MOCK;
+
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
       {predictions.map((p) => <PredictionCard key={p.id} p={p} />)}
@@ -136,6 +155,60 @@ async function UserRankCard() {
 
 function UserRankSkeleton() {
   return <div className="shimmer rounded-2xl flex-[28] min-h-0" style={{ height: "180px" }} />;
+}
+
+async function LeaderboardWidget() {
+  const leaders = await getLeaderboard(5).catch(() => []);
+  const ranked = leaders
+    .sort((a: { coins: number }, b: { coins: number }) => b.coins - a.coins)
+    .slice(0, 5)
+    .map((u: { id: string; display_name: string | null; username: string; coins: number; accuracy_pct: number }, i: number) => ({
+      ...u,
+      rank: i + 1,
+      name: u.display_name ?? u.username,
+    }));
+
+  return (
+    <div className="rounded-2xl p-4 border border-white/5 flex-shrink-0 flex flex-col" style={{ background: "#101115" }}>
+      <div className="flex items-center justify-between mb-3 flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-yellow-400" />
+          <h2 className="text-sm font-bold">นักพยากรณ์ยอดนิยม</h2>
+        </div>
+        <Link href="/ranking" className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1">
+          ดูทั้งหมด <ChevronRight className="w-3 h-3" />
+        </Link>
+      </div>
+      <div className="flex flex-col gap-1 overflow-hidden">
+        {ranked.map((u: { rank: number; name: string; coins: number; accuracy_pct: number }) => (
+          <div key={u.rank}
+            className="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors hover:bg-white/[0.03]"
+            style={u.rank <= 3 ? {
+              background: "rgba(215,181,109,0.04)",
+              border: "1px solid rgba(215,181,109,0.12)",
+            } : undefined}
+          >
+            <span className="w-5 text-center flex-shrink-0 text-sm font-black"
+              style={!RANK_BADGE[u.rank] ? { color: "var(--text-muted)", fontSize: "10px" } : undefined}>
+              {RANK_BADGE[u.rank] ?? `#${u.rank}`}
+            </span>
+            <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+              style={{ background: "linear-gradient(135deg, #4B3975, #6F4BFF)" }}>
+              {u.name[0]?.toUpperCase()}
+            </div>
+            <span className="flex-1 text-sm font-medium text-[var(--text-primary)] truncate">{u.name}</span>
+            <div className="text-right flex-shrink-0">
+              <div className="flex items-center gap-1 justify-end">
+                <Image src="/images/point2.png" alt="point" width={14} height={14} />
+                <p className="text-xs font-black" style={{ color: "#D7B56D" }}>{u.coins.toLocaleString()}</p>
+              </div>
+              <p className="text-[10px]" style={{ color: "#5ED3A6" }}>{u.accuracy_pct}%</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function HomePage() {
@@ -258,45 +331,9 @@ export default function HomePage() {
         </Suspense>
 
         {/* Top Predictors Leaderboard */}
-        <div className="rounded-2xl p-4 border border-white/5 flex-shrink-0 flex flex-col" style={{ background: "#101115" }}>
-          <div className="flex items-center justify-between mb-3 flex-shrink-0">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-yellow-400" />
-              <h2 className="text-sm font-bold">นักพยากรณ์ยอดนิยม</h2>
-            </div>
-            <Link href="/ranking" className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1">
-              ดูทั้งหมด <ChevronRight className="w-3 h-3" />
-            </Link>
-          </div>
-          <div className="flex flex-col gap-1 overflow-hidden">
-            {MOCK_LEADERS.map((u) => (
-              <div key={u.rank}
-                className="flex items-center gap-3 px-3 py-2 rounded-xl transition-colors hover:bg-white/[0.03]"
-                style={u.rank <= 3 ? {
-                  background: "rgba(215,181,109,0.04)",
-                  border: "1px solid rgba(215,181,109,0.12)",
-                } : undefined}
-              >
-                <span className="w-5 text-center flex-shrink-0 text-sm font-black"
-                  style={!RANK_BADGE[u.rank] ? { color: "var(--text-muted)", fontSize: "10px" } : undefined}>
-                  {RANK_BADGE[u.rank] ?? `#${u.rank}`}
-                </span>
-                <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                  style={{ background: "linear-gradient(135deg, #4B3975, #6F4BFF)" }}>
-                  {u.name[0]}
-                </div>
-                <span className="flex-1 text-sm font-medium text-[var(--text-primary)] truncate">{u.name}</span>
-                <div className="text-right flex-shrink-0">
-                  <div className="flex items-center gap-1 justify-end">
-                    <Image src="/images/point2.png" alt="point" width={14} height={14} />
-                    <p className="text-xs font-black" style={{ color: "#D7B56D" }}>{u.coins}</p>
-                  </div>
-                  <p className="text-[10px]" style={{ color: "#5ED3A6" }}>{u.accuracy}%</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <Suspense fallback={<div className="shimmer rounded-2xl" style={{ height: "260px" }} />}>
+          <LeaderboardWidget />
+        </Suspense>
 
         {/* Community Trending Panel */}
         <div className="rounded-2xl p-4 border border-white/5 flex-shrink-0 flex flex-col" style={{ background: "#101115" }}>

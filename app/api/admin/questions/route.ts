@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
     description?: string;
     ends_at: string;
     category_id: number;
+    subcategory?: string | null;
     is_featured: boolean;
     is_trending: boolean;
     image_url?: string | null;
@@ -37,6 +38,7 @@ export async function POST(req: NextRequest) {
       description: body.description ?? null,
       ends_at: body.ends_at,
       category_id: body.category_id,
+      subcategory: body.subcategory ?? null,
       is_featured: body.is_featured,
       is_trending: body.is_trending,
       image_url: body.image_url ?? null,

@@ -94,7 +94,7 @@ export async function claimMissionAction(slug: string) {
     user_id: user.id,
     type: "mission",
     title: "ภารกิจสำเร็จ! ⚡",
-    body: `รับรางวัล +${reward.coins.toLocaleString()} พาราฯ และ +${reward.xp} XP`,
+    body: `รับรางวัล +${reward.coins.toLocaleString()} ญาณฯ และ +${reward.xp} XP`,
     data: { slug, coins: reward.coins, xp: reward.xp },
   });
 

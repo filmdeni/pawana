@@ -177,7 +177,7 @@ export default function RankingClient({ dbLeaders, currentUserId }: Props) {
           >
             <span className="col-span-1 text-center">#</span>
             <span className="col-span-4">ผู้เล่น</span>
-            <span className="col-span-2 text-right">พาราฯ</span>
+            <span className="col-span-2 text-right">ญาณฯ</span>
             <span className="col-span-2 text-right">ความแม่น</span>
             <span className="col-span-1 text-right">สตรีค</span>
             <span className="col-span-2 text-right">การทาย</span>

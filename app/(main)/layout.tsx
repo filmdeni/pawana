@@ -3,20 +3,23 @@ import Sidebar from "@/components/Sidebar";
 import TopNav from "@/components/TopNav";
 import MobileNav from "@/components/MobileNav";
 import CoinFlyLayer from "@/components/CoinFly";
+import RewardClaimFX from "@/components/RewardClaimFX";
 import WinNotificationLayer from "@/components/WinNotificationLayer";
 import { getSessionUser } from "@/lib/actions/auth";
 import { getUserProfile } from "@/lib/queries/predictions";
+import { redirect } from "next/navigation";
 
 export default async function MainLayout({ children }: { children: React.ReactNode }) {
   const user = await getSessionUser().catch(() => null);
-  const profile = user ? await getUserProfile(user.id).catch(() => null) : null;
+  if (!user) redirect("/login");
+  const profile = await getUserProfile(user.id).catch(() => null);
 
-  const coins = profile?.coins ?? 12450;
-  const username = profile?.username ?? profile?.display_name ?? "MysticPredictor";
+  const coins = profile?.coins ?? 0;
+  const username = profile?.username ?? profile?.display_name ?? user?.user_metadata?.full_name ?? "ผู้ใช้";
   const avatarUrl = profile?.avatar_url ?? user?.user_metadata?.avatar_url ?? user?.user_metadata?.picture ?? null;
   const rank = profile?.rank_position ? `#${profile.rank_position}` : "#—";
-  const xp = profile?.xp ?? 2450;
-  const level = profile?.level ?? 24;
+  const xp = profile?.xp ?? 0;
+  const level = profile?.level ?? 1;
 
   return (
     <div className="min-h-screen cosmic-bg">
@@ -58,6 +61,9 @@ export default async function MainLayout({ children }: { children: React.ReactNo
 
       {/* Coin fly animation layer */}
       <CoinFlyLayer />
+
+      {/* Premium reward claim animation layer */}
+      <RewardClaimFX />
 
       {/* Win celebration overlay (realtime) */}
       <WinNotificationLayer userId={user?.id ?? null} />

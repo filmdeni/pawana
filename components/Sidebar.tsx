@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useTransition } from "react";
 import {
   Home, TrendingUp, MessageSquare, Trophy, User,
-  ShoppingBag, Zap, Bell, Settings, LogOut, Loader2
+  ShoppingBag, Zap, Bell, Settings, LogOut, Loader2,
 } from "lucide-react";
 import { logoutAction } from "@/lib/actions/auth";
 
@@ -18,6 +18,7 @@ const nav = [
   { href: "/shop",     label: "ร้านค้า",       icon: ShoppingBag,   accent: "#d480ff" },
   { href: "/profile",  label: "โปรไฟล์",      icon: User,          accent: "#7B61FF" },
 ];
+
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -63,6 +64,7 @@ export default function Sidebar() {
               </Link>
             );
           })}
+
         </nav>
 
         {/* Promo Card — centered in remaining space */}

@@ -19,7 +19,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { action, resolution, fields } = body as {
     action: string;
     resolution?: boolean;
-    fields?: { title?: string; description?: string; ends_at?: string; is_featured?: boolean; is_trending?: boolean; image_url?: string | null; image_position?: string; category_id?: number | null; yes_label?: string; no_label?: string };
+    fields?: { title?: string; description?: string; ends_at?: string; is_featured?: boolean; is_trending?: boolean; image_url?: string | null; image_position?: string; category_id?: number | null; subcategory?: string | null; yes_label?: string; no_label?: string };
   };
 
   let patch: Record<string, unknown> = {};
@@ -90,7 +90,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
           type: isWinner ? "win" : "lose",
           title: isWinner ? "ทายถูก! 🎉" : "ทายผิด 😔",
           body: isWinner
-            ? `"${pred.title}" — คุณได้รับ ${coinsDelta.toLocaleString()} พาราฯ`
+            ? `"${pred.title}" — คุณได้รับ ${coinsDelta.toLocaleString()} ญาณฯ`
             : `"${pred.title}" — เสียใจด้วย ไว้โชคดีครั้งหน้า`,
           data: {
             prediction_id: id,
@@ -108,7 +108,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     return NextResponse.json({ ok: true });
   } else if (action === "update" && fields) {
-    const allowed = ["title", "description", "ends_at", "is_featured", "is_trending", "image_url", "image_position", "category_id", "yes_label", "no_label"] as const;
+    const allowed = ["title", "description", "ends_at", "is_featured", "is_trending", "image_url", "image_position", "category_id", "subcategory", "yes_label", "no_label"] as const;
     for (const k of allowed) if (fields[k] !== undefined) patch[k] = fields[k];
     if (Object.keys(patch).length === 0) return NextResponse.json({ error: "No fields" }, { status: 400 });
   } else {

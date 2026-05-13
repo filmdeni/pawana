@@ -2,24 +2,44 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import PredictList from "./PredictList";
 import ParallaxBg from "@/components/ParallaxBg";
-import { getTrendingPredictions, PredictionRow } from "@/lib/queries/predictions";
+import { getTrendingPredictions, getUserVotesMap, PredictionRow } from "@/lib/queries/predictions";
+import { getSessionUser } from "@/lib/actions/auth";
 import { Prediction } from "@/components/PredictionCard";
 import { clampPct } from "@/lib/poolDisplay";
 
+function formatPool(n: number) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
+  return String(n);
+}
+
 function rowToCard(r: PredictionRow): Prediction {
-  const total = r.yes_pool + r.no_pool || 1;
-  const yesPct = Math.round((r.yes_pool / total) * 100);
   const catEmoji: Record<string, string> = {
     drama: "💔", game: "🎮", sports: "⚽", finance: "₿", viral: "🔥", other: "✨",
   };
+
+  const isMulti = Array.isArray(r.options) && r.options.length > 2;
+  let options: { label: string; percent: number }[] | undefined;
+
+  if (isMulti && r.options && r.option_pools) {
+    const poolTotal = r.option_pools.reduce((s, v) => s + v, 0) || 1;
+    options = r.options.map((label, i) => ({
+      label,
+      percent: Math.round(((r.option_pools![i] ?? 0) / poolTotal) * 100),
+    }));
+  }
+
+  const total = r.yes_pool + r.no_pool || 1;
+  const yesPct = Math.round((r.yes_pool / total) * 100);
+
   return {
     id: r.id,
     title: r.title,
     category: r.categories?.label ?? "อื่นๆ",
     yesPercent: clampPct(yesPct).yes,
     noPercent: clampPct(yesPct).no,
-    yesPool: r.yes_pool >= 1_000_000 ? `${(r.yes_pool / 1_000_000).toFixed(1)}M` : r.yes_pool >= 1_000 ? `${(r.yes_pool / 1_000).toFixed(0)}K` : String(r.yes_pool),
-    noPool:  r.no_pool  >= 1_000_000 ? `${(r.no_pool  / 1_000_000).toFixed(1)}M` : r.no_pool  >= 1_000 ? `${(r.no_pool  / 1_000).toFixed(0)}K` : String(r.no_pool),
+    yesPool: formatPool(r.yes_pool),
+    noPool:  formatPool(r.no_pool),
     participants: r.participant_count,
     timeLeft: (() => {
       const d = Math.ceil((new Date(r.ends_at).getTime() - Date.now()) / 86_400_000);
@@ -30,6 +50,7 @@ function rowToCard(r: PredictionRow): Prediction {
     image: catEmoji[r.categories?.slug ?? "other"] ?? "✨",
     imageUrl: r.image_url ?? undefined,
     imagePosition: r.image_position ?? "50% 50%",
+    ...(options ? { options } : {}),
   };
 }
 
@@ -43,8 +64,26 @@ const MOCK: Prediction[] = [
 ];
 
 export default async function PredictPage() {
-  const dbPredictions = await getTrendingPredictions(50).catch(() => []);
-  const predictions = dbPredictions.length > 0 ? dbPredictions.map(rowToCard) : MOCK;
+  const [dbPredictions, user] = await Promise.all([
+    getTrendingPredictions(50, false).catch(() => []),
+    getSessionUser().catch(() => null),
+  ]);
+
+  let votesMap: Record<string, { choiceLabel: string; amount: number }> = {};
+  if (user && dbPredictions.length > 0) {
+    const raw = await getUserVotesMap(dbPredictions.map((r) => r.id), user.id);
+    for (const [pid, v] of Object.entries(raw)) {
+      const row = dbPredictions.find((r) => r.id === pid);
+      const label = v.choice_index != null
+        ? (row?.options?.[v.choice_index] ?? (v.choice ? row?.yes_label ?? "ใช่" : row?.no_label ?? "ไม่ใช่"))
+        : (v.choice ? row?.yes_label ?? "ใช่" : row?.no_label ?? "ไม่ใช่");
+      votesMap[pid] = { choiceLabel: label, amount: v.amount };
+    }
+  }
+
+  const predictions = dbPredictions.length > 0
+    ? dbPredictions.map((r) => ({ ...rowToCard(r), userVote: votesMap[r.id] ?? null }))
+    : MOCK;
 
   return (
     <div className="relative">

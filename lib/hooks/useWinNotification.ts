@@ -2,7 +2,8 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-export interface WinEvent {
+export interface ResultEvent {
+  type: "win" | "lose";
   coins: number;
   xp: number;
   predictionTitle: string;
@@ -10,10 +11,10 @@ export interface WinEvent {
 }
 
 export function useWinNotification(userId: string | null) {
-  const [winEvent, setWinEvent] = useState<WinEvent | null>(null);
+  const [resultEvent, setResultEvent] = useState<ResultEvent | null>(null);
   const channelRef = useRef<ReturnType<ReturnType<typeof createClient>["channel"]> | null>(null);
 
-  const dismiss = useCallback(() => setWinEvent(null), []);
+  const dismiss = useCallback(() => setResultEvent(null), []);
 
   useEffect(() => {
     if (!userId) return;
@@ -37,13 +38,13 @@ export function useWinNotification(userId: string | null) {
             data: { coins?: number; xp?: number; prediction_id?: string } | null;
           };
 
-          if (row.type !== "win") return;
+          if (row.type !== "win" && row.type !== "lose") return;
 
-          // Extract prediction title from body — format: "…title…" — …rest
           const titleMatch = row.body?.match(/"(.+?)"/);
           const predictionTitle = titleMatch?.[1] ?? "คำทำนาย";
 
-          setWinEvent({
+          setResultEvent({
+            type: row.type as "win" | "lose",
             coins: row.data?.coins ?? 0,
             xp: row.data?.xp ?? 0,
             predictionTitle,
@@ -57,5 +58,5 @@ export function useWinNotification(userId: string | null) {
     return () => { supabase.removeChannel(channel); };
   }, [userId]);
 
-  return { winEvent, dismiss };
+  return { resultEvent, dismiss };
 }

@@ -86,7 +86,7 @@ export default async function MissionsPage() {
   const special = [
     { label: "ทำนายถูก 100 ครั้ง (ตลอดกาล)", reward: 5000, ...d("special_100win",   Math.min(correctVotes, 100), 100)   },
     { label: "สตรีค 30 วัน",                  reward: 3000, ...d("special_streak30", Math.min(streak, 30),        30)    },
-    { label: "ใช้พาราฯ รวม 10,000",           reward: 2000, ...d(null,               Math.min(totalSpent, 10000), 10000) },
+    { label: "ใช้ญาณฯ รวม 10,000",           reward: 2000, ...d(null,               Math.min(totalSpent, 10000), 10000) },
   ];
 
   const dailyDone  = daily.filter((m)   => m.progress >= m.total).length;
@@ -103,7 +103,7 @@ export default async function MissionsPage() {
         </div>
         <div>
           <h1 className="text-xl font-black gradient-gold">ภารกิจ</h1>
-          <p className="text-sm text-[var(--text-muted)]">ทำภารกิจรับพาราฯ และ XP เพิ่มเติม</p>
+          <p className="text-sm text-[var(--text-muted)]">ทำภารกิจรับญาณฯ และ XP เพิ่มเติม</p>
         </div>
       </div>
 

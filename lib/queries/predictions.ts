@@ -14,14 +14,17 @@ export interface PredictionRow {
   is_featured: boolean;
   yes_label: string;
   no_label: string;
+  options: string[] | null;
+  option_pools: number[] | null;
   categories: { slug: string; label: string; emoji: string | null } | null;
   profiles: { username: string; display_name: string | null } | null;
 }
 
-export async function getTrendingPredictions(limit = 8): Promise<PredictionRow[]> {
+export async function getTrendingPredictions(limit = 8, useHotPicks = true): Promise<PredictionRow[]> {
   const supabase = await createClient();
 
-  // Try manually curated hot picks first
+  // Try manually curated hot picks first (homepage only)
+  if (useHotPicks) {
   const { data: picks } = await supabase
     .from("hot_picks")
     .select("slot, prediction_id")
@@ -34,7 +37,7 @@ export async function getTrendingPredictions(limit = 8): Promise<PredictionRow[]
       .from("predictions")
       .select(`
         id, title, description, image_url, image_position, yes_pool, no_pool, participant_count,
-        ends_at, is_trending, is_featured, yes_label, no_label,
+        ends_at, is_trending, is_featured, yes_label, no_label, options, option_pools,
         categories ( slug, label, emoji ),
         profiles ( username, display_name )
       `)
@@ -46,13 +49,14 @@ export async function getTrendingPredictions(limit = 8): Promise<PredictionRow[]
       return ordered as unknown as PredictionRow[];
     }
   }
+  } // end useHotPicks
 
   // Fallback: most popular active predictions
   const { data, error } = await supabase
     .from("predictions")
     .select(`
       id, title, description, image_url, image_position, yes_pool, no_pool, participant_count,
-      ends_at, is_trending, is_featured,
+      ends_at, is_trending, is_featured, yes_label, no_label, options, option_pools,
       categories ( slug, label, emoji ),
       profiles ( username, display_name )
     `)
@@ -74,7 +78,7 @@ export async function getPredictionById(id: string): Promise<PredictionRow | nul
     .from("predictions")
     .select(`
       id, title, description, image_url, image_position, yes_pool, no_pool, participant_count,
-      ends_at, is_trending, is_featured,
+      ends_at, is_trending, is_featured, yes_label, no_label, options, option_pools,
       categories ( slug, label, emoji ),
       profiles ( username, display_name )
     `)
@@ -88,15 +92,33 @@ export async function getPredictionById(id: string): Promise<PredictionRow | nul
 export async function getUserVote(
   predictionId: string,
   userId: string
-): Promise<{ choice: boolean; amount: number } | null> {
+): Promise<{ choice: boolean; choice_index: number | null; amount: number } | null> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("votes")
-    .select("choice, amount")
+    .select("choice, choice_index, amount")
     .eq("prediction_id", predictionId)
     .eq("user_id", userId)
     .single();
   return data ?? null;
+}
+
+export async function getUserVotesMap(
+  predictionIds: string[],
+  userId: string
+): Promise<Record<string, { choice: boolean; choice_index: number | null; amount: number }>> {
+  if (!predictionIds.length) return {};
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("votes")
+    .select("prediction_id, choice, choice_index, amount")
+    .in("prediction_id", predictionIds)
+    .eq("user_id", userId);
+  const map: Record<string, { choice: boolean; choice_index: number | null; amount: number }> = {};
+  for (const row of data ?? []) {
+    map[row.prediction_id] = { choice: row.choice, choice_index: row.choice_index, amount: row.amount };
+  }
+  return map;
 }
 
 export async function getLeaderboard(limit = 20) {

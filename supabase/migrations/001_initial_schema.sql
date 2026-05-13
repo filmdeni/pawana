@@ -218,7 +218,7 @@ create policy "shop_items_read_active" on public.shop_items for select using (is
 insert into public.shop_items (name, description, type, rarity, price, emoji, is_featured) values
   ('ซุพพีเชส จักรวาล', 'เพิ่มโอกาสทำนายถูก +10% เป็นเวลา 7 วัน', 'boost',  'epic',      2000, '🔮', true),
   ('พิมคำทำนาย',       'เพิ่มคำเตือนสำหรับการทำนาย',              'boost',  'rare',      1500, '📜', false),
-  ('เหรียญนำโชค',      'รับพาราเพิ่ม +20% เป็นเวลา 3 วัน',        'boost',  'uncommon',  1000, '🪙', false),
+  ('เหรียญนำโชค',      'รับญาณเพิ่ม +20% เป็นเวลา 3 วัน',        'boost',  'uncommon',  1000, '🪙', false),
   ('กล่องสุ่มไอเท็ม',  'สุ่มรับไอเท็มสุดหายาก',                  'box',    'legendary', 2500, '📦', false),
   ('กรอบ Cosmic',      'กรอบโปรไฟล์สไตล์จักรวาล',                 'frame',  'rare',      1200, '🌌', false),
   ('กรอบ Gold Crown',  'แสดงถึงสถานะสูงสุด',                      'frame',  'epic',      1500, '👑', false);

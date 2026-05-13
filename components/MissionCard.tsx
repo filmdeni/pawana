@@ -3,7 +3,7 @@ import { useState, useTransition } from "react";
 import Image from "next/image";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { claimMissionAction } from "@/lib/actions/missions";
-import { triggerCoinFly } from "@/components/CoinFly";
+import { triggerRewardClaim } from "@/components/RewardClaimFX";
 
 interface Mission {
   label: string;
@@ -27,12 +27,13 @@ export default function MissionCard({ m }: { m: Mission }) {
     setBurst(true);
     setTimeout(() => setBurst(false), 800);
     setClaimed(true);
-    triggerCoinFly(e.currentTarget, 8);
+    triggerRewardClaim(e.currentTarget, m.reward);
     if (m.slug) startTransition(async () => { await claimMissionAction(m.slug!); });
   }
 
   return (
     <div
+      data-mission-card
       className={`glass rounded-xl p-3.5 flex items-center gap-3.5 relative overflow-hidden transition-all duration-200
         ${claimed ? "opacity-60" : isComplete ? "card-hover border border-yellow-400/30" : "card-hover"}`}
       style={claimed ? { borderColor: "rgba(94,211,166,0.25)" } : undefined}
