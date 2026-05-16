@@ -55,13 +55,8 @@ export default function InstantFeedback({
   const barAfter = Math.min(((xpAfter % xpPerLevel) / xpPerLevel) * 100, 100);
 
   useEffect(() => {
-    // enter → fill bar after 120ms
     const t1 = setTimeout(() => { setPhase("visible"); setXpFilled(true); }, 120);
-    // auto-dismiss after 3.8s
-    timerRef.current = setTimeout(() => {
-      setPhase("exit");
-      setTimeout(onDone, 380);
-    }, 3800);
+    // ไม่ auto-dismiss — ผู้ใช้ต้องกดปิดเอง
     return () => { clearTimeout(t1); if (timerRef.current) clearTimeout(timerRef.current); };
   }, [onDone]);
 
@@ -149,6 +144,19 @@ export default function InstantFeedback({
           <Image src="/images/point2.png" alt="coin" width={14} height={14} />
           <span className="instant-feedback-coins-label">ญาณฯ ถูกหัก — รอผลเพื่อรับคืนพร้อมกำไร</span>
         </div>
+
+        {/* Close button */}
+        <button
+          onClick={dismiss}
+          className="w-full mt-3 py-3 rounded-xl font-black text-sm transition-all active:scale-[0.97]"
+          style={{
+            background: "linear-gradient(135deg, #16a34a, #22c55e)",
+            color: "#fff",
+            boxShadow: "0 4px 16px rgba(34,197,94,0.3)",
+          }}
+        >
+          รับทราบ ✓
+        </button>
       </div>
     </div>
   );

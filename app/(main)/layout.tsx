@@ -5,6 +5,7 @@ import MobileNav from "@/components/MobileNav";
 import CoinFlyLayer from "@/components/CoinFly";
 import RewardClaimFX from "@/components/RewardClaimFX";
 import WinNotificationLayer from "@/components/WinNotificationLayer";
+import TermsConsentGate from "@/components/TermsConsentGate";
 import { getSessionUser } from "@/lib/actions/auth";
 import { getUserProfile } from "@/lib/queries/predictions";
 import { redirect } from "next/navigation";
@@ -25,7 +26,7 @@ export default async function MainLayout({ children }: { children: React.ReactNo
     <div className="min-h-screen cosmic-bg">
       {/* Desktop sidebar */}
       <div className="hidden md:block">
-        <Sidebar />
+        <Sidebar isAdmin={profile?.is_admin ?? false} />
       </div>
 
       {/* Top nav — offset by sidebar on md+ */}
@@ -67,6 +68,9 @@ export default async function MainLayout({ children }: { children: React.ReactNo
 
       {/* Win celebration overlay (realtime) */}
       <WinNotificationLayer userId={user?.id ?? null} />
+
+      {/* Terms consent — shows once until accepted */}
+      <TermsConsentGate hasAccepted={!!profile?.terms_accepted_at} />
     </div>
   );
 }

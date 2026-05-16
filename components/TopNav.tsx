@@ -36,16 +36,19 @@ export default function TopNav({
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  const xpPct = Math.min(Math.round((xp / xpMax) * 100), 100);
+
   return (
-    <header className="fixed top-0 left-56 right-0 h-14 glass border-b border-[rgba(124,58,237,0.2)] z-30 flex items-center px-5 gap-4">
+    <header className="fixed top-0 left-56 right-0 glass border-b border-[rgba(124,58,237,0.2)] z-30 flex flex-col">
+      <div className="flex items-center px-5 gap-4 h-14">
       {/* Search */}
       <div className="flex-1 max-w-md relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400/60" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400/50 pointer-events-none" />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="ค้นหาหัวข้อทำนาย..."
-          className="w-full bg-white/5 border border-[rgba(124,58,237,0.2)] rounded-lg pl-9 pr-4 py-1.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-purple-500/60 focus:bg-white/8 transition-all"
+          className="input-focus w-full bg-white/[0.04] border border-[rgba(124,58,237,0.18)] rounded-xl pl-9 pr-4 py-1.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
         />
       </div>
 
@@ -60,15 +63,6 @@ export default function TopNav({
             <Plus className="w-3 h-3 text-yellow-400" />
           </button>
         </div>
-
-        {/* Create Prediction */}
-        <Link
-          href="/create"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold bg-gradient-to-r from-purple-600 to-violet-700 hover:from-purple-500 hover:to-violet-600 text-white transition-all glow-purple"
-        >
-          <Plus className="w-4 h-4" />
-          สร้างคำทำนาย
-        </Link>
 
         {/* Notifications */}
         <Link href="/notifications" className="relative w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors">
@@ -119,6 +113,18 @@ export default function TopNav({
             </div>
           )}
         </div>
+      </div>
+      </div>
+      {/* XP bar */}
+      <div className="h-[2px] w-full overflow-hidden" style={{ background: "rgba(255,255,255,0.04)" }}>
+        <div
+          className="h-full xp-nav-bar"
+          style={{
+            width: `${xpPct}%`,
+            background: "linear-gradient(90deg, #4B3975, #6F4BFF 60%, #A78BFA)",
+            boxShadow: "0 0 8px rgba(111,75,255,0.5)",
+          }}
+        />
       </div>
     </header>
   );

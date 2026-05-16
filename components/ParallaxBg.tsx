@@ -96,16 +96,19 @@ export default function ParallaxBg({ variant = "purple" }: Props) {
           width: 520, height: 520, top: "-12%", left: "-8%",
           background: `radial-gradient(circle, ${c.orb1} 0%, transparent 70%)`,
           filter: "blur(60px)",
+          animation: "orb-breathe 8s ease-in-out infinite",
         }} />
         <div className="absolute rounded-full" style={{
           width: 380, height: 380, top: "30%", right: "-6%",
           background: `radial-gradient(circle, ${c.orb2} 0%, transparent 70%)`,
           filter: "blur(50px)",
+          animation: "orb-drift 11s ease-in-out infinite",
         }} />
         <div className="absolute rounded-full" style={{
           width: 300, height: 300, bottom: "5%", left: "20%",
           background: `radial-gradient(circle, ${c.orb3} 0%, transparent 70%)`,
           filter: "blur(45px)",
+          animation: "orb-breathe 14s ease-in-out 2s infinite",
         }} />
       </div>
 
@@ -115,11 +118,13 @@ export default function ParallaxBg({ variant = "purple" }: Props) {
           width: 200, height: 200, top: "55%", left: "60%",
           background: `radial-gradient(circle, ${c.accent1} 0%, transparent 70%)`,
           filter: "blur(40px)",
+          animation: "orb-drift 7s ease-in-out 1s infinite",
         }} />
         <div className="absolute rounded-full" style={{
           width: 140, height: 140, top: "15%", left: "45%",
           background: `radial-gradient(circle, ${c.accent2} 0%, transparent 70%)`,
           filter: "blur(30px)",
+          animation: "orb-breathe 9s ease-in-out 3s infinite",
         }} />
       </div>
     </div>

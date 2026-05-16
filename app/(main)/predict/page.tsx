@@ -2,15 +2,46 @@ import { Plus } from "lucide-react";
 import Link from "next/link";
 import PredictList from "./PredictList";
 import ParallaxBg from "@/components/ParallaxBg";
-import { getTrendingPredictions, getUserVotesMap, PredictionRow } from "@/lib/queries/predictions";
+import WelcomeModal from "@/components/WelcomeModal";
+import DailyClaimBanner from "@/components/DailyClaimBanner";
+import { getTrendingPredictions, getAwaitingResolutionPredictions, getUserVotesMap, PredictionRow } from "@/lib/queries/predictions";
 import { getSessionUser } from "@/lib/actions/auth";
-import { Prediction } from "@/components/PredictionCard";
+import { getRewardState } from "@/lib/actions/rewards";
+import PredictionCard, { Prediction } from "@/components/PredictionCard";
 import { clampPct } from "@/lib/poolDisplay";
 
 function formatPool(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
   return String(n);
+}
+
+const COIN_KEYWORDS: { keys: string[]; symbol: string }[] = [
+  { keys: ["bitcoin", "btc"],     symbol: "BTC" },
+  { keys: ["ethereum", "eth"],    symbol: "ETH" },
+  { keys: ["solana", "sol"],      symbol: "SOL" },
+  { keys: ["xrp", "ripple"],      symbol: "XRP" },
+  { keys: ["bnb"],                symbol: "BNB" },
+  { keys: ["dogecoin", "doge"],   symbol: "DOGE" },
+];
+
+function detectCoinSymbol(title: string, subcategory: string | null): string | undefined {
+  const lower = (title + " " + (subcategory ?? "")).toLowerCase();
+  for (const { keys, symbol } of COIN_KEYWORDS) {
+    if (keys.some(k => lower.includes(k))) return symbol;
+  }
+  return undefined;
+}
+
+function formatTimeLeft(endsAt: string): string {
+  const diff = new Date(endsAt).getTime() - Date.now();
+  if (diff <= 0) return "เฉลยแล้ว";
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins} นาที`;
+  const hrs = Math.floor(diff / 3600000);
+  if (hrs < 24) return `${hrs} ชั่วโมง`;
+  const days = Math.ceil(diff / 86400000);
+  return `${days} วัน`;
 }
 
 function rowToCard(r: PredictionRow): Prediction {
@@ -21,16 +52,25 @@ function rowToCard(r: PredictionRow): Prediction {
   const isMulti = Array.isArray(r.options) && r.options.length > 2;
   let options: { label: string; percent: number }[] | undefined;
 
-  if (isMulti && r.options && r.option_pools) {
-    const poolTotal = r.option_pools.reduce((s, v) => s + v, 0) || 1;
+  if (isMulti && r.options) {
+    const pools = r.option_pools ?? r.options.map(() => 0);
+    const poolTotal = pools.reduce((s, v) => s + v, 0);
+    const equalPct = Math.round(100 / r.options.length);
     options = r.options.map((label, i) => ({
       label,
-      percent: Math.round(((r.option_pools![i] ?? 0) / poolTotal) * 100),
+      percent: poolTotal > 0 ? Math.round(((pools[i] ?? 0) / poolTotal) * 100) : equalPct,
     }));
   }
 
   const total = r.yes_pool + r.no_pool || 1;
   const yesPct = Math.round((r.yes_pool / total) * 100);
+  const coinSymbol = detectCoinSymbol(r.title, (r as { subcategory?: string | null }).subcategory ?? null);
+
+  const diffMs = new Date(r.ends_at).getTime() - Date.now();
+  const predictionType: "quick" | "standard" | "epic" | undefined =
+    diffMs <= 30 * 60_000      ? "quick" :
+    diffMs >= 30 * 86_400_000  ? "epic"  :
+    undefined;
 
   return {
     id: r.id,
@@ -40,16 +80,21 @@ function rowToCard(r: PredictionRow): Prediction {
     noPercent: clampPct(yesPct).no,
     yesPool: formatPool(r.yes_pool),
     noPool:  formatPool(r.no_pool),
+    yesPoolRaw: r.yes_pool,
+    noPoolRaw:  r.no_pool,
     participants: r.participant_count,
-    timeLeft: (() => {
-      const d = Math.ceil((new Date(r.ends_at).getTime() - Date.now()) / 86_400_000);
-      return d > 0 ? `${d} วัน` : "1 ชั่วโมง";
-    })(),
+    timeLeft: formatTimeLeft(r.ends_at),
+    endsAt: r.ends_at,
+    coinSymbol,
+    subcategory: (r as { subcategory?: string | null }).subcategory ?? null,
     hot: r.is_featured,
     trending: r.is_trending,
     image: catEmoji[r.categories?.slug ?? "other"] ?? "✨",
     imageUrl: r.image_url ?? undefined,
     imagePosition: r.image_position ?? "50% 50%",
+    predictionType,
+    yesLabel: r.yes_label ?? "ใช่",
+    noLabel: r.no_label ?? "ไม่",
     ...(options ? { options } : {}),
   };
 }
@@ -64,9 +109,11 @@ const MOCK: Prediction[] = [
 ];
 
 export default async function PredictPage() {
-  const [dbPredictions, user] = await Promise.all([
+  const [dbPredictions, dbAwaiting, user, rewardState] = await Promise.all([
     getTrendingPredictions(50, false).catch(() => []),
+    getAwaitingResolutionPredictions(20).catch(() => []),
     getSessionUser().catch(() => null),
+    getRewardState().catch(() => null),
   ]);
 
   let votesMap: Record<string, { choiceLabel: string; amount: number }> = {};
@@ -85,9 +132,14 @@ export default async function PredictPage() {
     ? dbPredictions.map((r) => ({ ...rowToCard(r), userVote: votesMap[r.id] ?? null }))
     : MOCK;
 
+  const awaitingPredictions = dbAwaiting.map((r) => ({ ...rowToCard(r), userVote: votesMap[r.id] ?? null }));
+
   return (
     <div className="relative">
       <ParallaxBg />
+      {rewardState?.isNewUser && (
+        <WelcomeModal isNewUser coins={rewardState.coins} />
+      )}
     <div className="relative p-4 md:p-6 max-w-screen-xl mx-auto" style={{ zIndex: 1 }}>
       <div className="flex items-center justify-between mb-5 gap-3">
         <div>
@@ -99,7 +151,21 @@ export default async function PredictPage() {
         </Link>
       </div>
 
+      {rewardState?.canClaimDaily && <DailyClaimBanner canClaim />}
       <PredictList predictions={predictions} />
+
+      {awaitingPredictions.length > 0 && (
+        <div className="mt-10">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-lg">⏳</span>
+            <h2 className="text-base font-bold text-[var(--text-primary)]">รอเฉลย</h2>
+            <span className="text-xs text-[var(--text-muted)] bg-white/5 border border-white/10 rounded-full px-2 py-0.5">{awaitingPredictions.length}</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            {awaitingPredictions.map((p) => <PredictionCard key={p.id} p={p} showComments />)}
+          </div>
+        </div>
+      )}
     </div>
     </div>
   );

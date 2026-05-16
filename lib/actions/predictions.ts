@@ -46,20 +46,25 @@ export async function castVoteAction(
   if (choiceIndex !== null) votePayload.choice_index = choiceIndex;
 
   const { error } = await supabase.from("votes").insert(votePayload);
-  if (error) return { error: "เกิดข้อผิดพลาด กรุณาลองใหม่" };
+  if (error) {
+    if (error.message?.includes("insufficient_coins")) return { error: "ญาณฯ ไม่เพียงพอ" };
+    return { error: "เกิดข้อผิดพลาด กรุณาลองใหม่" };
+  }
 
-  // For multi-option: update option_pools manually
+  // For multi-option: atomic pool increment via RPC (no read-modify-write race)
   let newOptionPools: number[] | undefined;
   if (isMulti) {
+    await supabase.rpc("increment_option_pool", {
+      p_prediction_id: predictionId,
+      p_index: choiceIndex as number,
+      p_amount: amount,
+    });
     const { data: pred } = await supabase
       .from("predictions")
       .select("option_pools")
       .eq("id", predictionId)
       .single();
-    const pools: number[] = (pred?.option_pools as number[]) ?? [];
-    pools[choiceIndex as number] = (pools[choiceIndex as number] ?? 0) + amount;
-    await supabase.from("predictions").update({ option_pools: pools }).eq("id", predictionId);
-    newOptionPools = pools;
+    newOptionPools = (pred?.option_pools as number[]) ?? [];
   }
 
   const { data: updated } = await supabase
@@ -99,7 +104,8 @@ export async function createPredictionAction(formData: FormData) {
   const description = formData.get("description") as string | null;
   const categoryId = formData.get("category_id") ? Number(formData.get("category_id")) : null;
   const endsAt = formData.get("ends_at") as string;
-  const reward = Number(formData.get("reward") ?? 0);
+  const maxBetRaw = Number(formData.get("max_bet") ?? 1000);
+  const maxBet = Math.max(10, Math.min(maxBetRaw, 100000));
   const imageFile = formData.get("image") as File | null;
   const imagePosition = (formData.get("image_position") as string | null) ?? "50% 50%";
   const subcategory = (formData.get("subcategory") as string | null) || null;
@@ -108,7 +114,7 @@ export async function createPredictionAction(formData: FormData) {
   const yesLabel = options[0] ?? "ใช่";
   const noLabel = options[1] ?? "ไม่ใช่";
   const isMultiOption = options.length > 2;
-  const optionPools = isMultiOption ? options.map((_, i) => i === 0 ? reward : 0) : null;
+  const optionPools = isMultiOption ? options.map(() => 0) : null;
 
   if (!title || title.length < 10) return { error: "หัวข้อต้องมีอย่างน้อย 10 ตัวอักษร" };
   if (!endsAt) return { error: "กรุณาเลือกวันสิ้นสุด" };
@@ -133,8 +139,9 @@ export async function createPredictionAction(formData: FormData) {
     category_id: categoryId,
     subcategory,
     ends_at: endsAt,
-    yes_pool: reward,
+    yes_pool: 0,
     no_pool: 0,
+    max_bet: maxBet,
     image_url: imageUrl,
     image_position: imagePosition,
     yes_label: yesLabel,

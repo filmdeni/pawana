@@ -1,7 +1,7 @@
 "use client";
 import { useState, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ImagePlus, Clock, Coins, ChevronDown, Loader2, Plus, X as XIcon } from "lucide-react";
+import { ArrowLeft, ImagePlus, Clock, Coins, Loader2, Plus, X as XIcon } from "lucide-react";
 import Link from "next/link";
 import { createPredictionAction } from "@/lib/actions/predictions";
 import { useToast } from "@/components/Toast";
@@ -22,11 +22,50 @@ const subcategoryMap: Record<number, string[]> = {
   2: ["PC", "มือถือ", "คอนโซล"],
 };
 
-const durationDays: Record<string, number> = {
-  "1 วัน": 1, "3 วัน": 3, "7 วัน": 7, "14 วัน": 14, "30 วัน": 30,
-};
-
-const durations = ["1 วัน", "3 วัน", "7 วัน", "14 วัน", "30 วัน"];
+const DURATION_PRESETS = [
+  {
+    group: "⚡ Quick",
+    color: "#fb923c",
+    bg: "rgba(251,146,60,0.12)",
+    border: "#fb923c",
+    items: [
+      { label: "5 นาที",  minutes: 5 },
+      { label: "15 นาที", minutes: 15 },
+      { label: "30 นาที", minutes: 30 },
+    ],
+  },
+  {
+    group: "🔥 Hot",
+    color: "#f43f5e",
+    bg: "rgba(244,63,94,0.12)",
+    border: "#f43f5e",
+    items: [
+      { label: "1 ชั่วโมง", minutes: 60 },
+      { label: "3 ชั่วโมง", minutes: 180 },
+      { label: "6 ชั่วโมง", minutes: 360 },
+    ],
+  },
+  {
+    group: "📅 Daily",
+    color: "#818cf8",
+    bg: "rgba(129,140,248,0.12)",
+    border: "#818cf8",
+    items: [
+      { label: "24 ชั่วโมง", minutes: 1440 },
+      { label: "3 วัน",      minutes: 4320 },
+    ],
+  },
+  {
+    group: "🏆 Long",
+    color: "#D7B56D",
+    bg: "rgba(215,181,109,0.10)",
+    border: "#D7B56D",
+    items: [
+      { label: "7 วัน",  minutes: 10080 },
+      { label: "30 วัน", minutes: 43200 },
+    ],
+  },
+];
 
 export default function CreatePage() {
   const router = useRouter();
@@ -34,7 +73,7 @@ export default function CreatePage() {
   const [categoryId, setCategoryId] = useState(1);
   const [categoryLabel, setCategoryLabel] = useState("ดราม่า");
   const [subcategory, setSubcategory] = useState<string | null>(null);
-  const [duration, setDuration] = useState("7 วัน");
+  const [durationMinutes, setDurationMinutes] = useState(10080);
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [reward, setReward] = useState(500);
@@ -51,15 +90,14 @@ export default function CreatePage() {
   function handleSubmit() {
     if (!isValid) return;
     startTransition(async () => {
-      const days = durationDays[duration] ?? 7;
-      const endsAt = new Date(Date.now() + days * 86_400_000).toISOString();
+      const endsAt = new Date(Date.now() + durationMinutes * 60_000).toISOString();
 
       const fd = new FormData();
       fd.set("title", title);
       fd.set("description", desc);
       fd.set("category_id", String(categoryId));
       fd.set("ends_at", endsAt);
-      fd.set("reward", String(reward));
+      fd.set("max_bet", String(reward));
       fd.set("image_position", imagePosition);
       fd.set("options", JSON.stringify(options.filter(o => o.trim())));
       if (subcategory) fd.set("subcategory", subcategory);
@@ -211,21 +249,36 @@ export default function CreatePage() {
         </div>
 
         {/* Duration + Image row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
+        <div className="grid grid-cols-1 gap-4">
+          <div className="sm:col-span-2">
             <label className="text-sm font-semibold text-[var(--text-primary)] block mb-2">
               <Clock className="w-3.5 h-3.5 inline mr-1 text-purple-400" />
               ระยะเวลาทำนาย
             </label>
-            <div className="relative">
-              <select
-                value={duration}
-                onChange={(e) => setDuration(e.target.value)}
-                className="w-full appearance-none bg-white/5 border border-[rgba(124,58,237,0.3)] rounded-xl px-4 py-2.5 pr-10 text-sm text-[var(--text-primary)] focus:outline-none focus:border-purple-500/60 transition-all cursor-pointer"
-              >
-                {durations.map((d) => <option key={d} value={d} className="bg-[#12121f]">{d}</option>)}
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400 pointer-events-none" />
+            <div className="space-y-2">
+              {DURATION_PRESETS.map((group) => (
+                <div key={group.group}>
+                  <p className="text-[10px] font-bold mb-1.5" style={{ color: group.color }}>{group.group}</p>
+                  <div className={`grid gap-1.5 ${group.items.length <= 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+                    {group.items.map((item) => {
+                      const isActive = durationMinutes === item.minutes;
+                      return (
+                        <button
+                          key={item.label}
+                          type="button"
+                          onClick={() => setDurationMinutes(item.minutes)}
+                          className="py-2 rounded-xl text-[12px] font-bold transition-all hover:brightness-110 active:scale-95"
+                          style={isActive
+                            ? { background: group.bg, border: `1px solid ${group.border}`, color: group.color }
+                            : { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(124,58,237,0.2)", color: "var(--text-muted)" }}
+                        >
+                          {item.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -270,7 +323,7 @@ export default function CreatePage() {
         <div>
           <label className="text-sm font-semibold text-[var(--text-primary)] block mb-2">
             <Coins className="w-3.5 h-3.5 inline mr-1 text-yellow-400" />
-            ตั้งรางวัล <span className="text-[var(--text-muted)] font-normal">(ไม่บังคับ)</span>
+            ญาณสูงสุดต่อการทาย
           </label>
           <div className="flex gap-2 mb-2">
             {[100, 500, 1000, 2000].map((v) => (
@@ -282,7 +335,7 @@ export default function CreatePage() {
           </div>
           <input type="number" value={reward} onChange={(e) => setReward(Number(e.target.value))} min={0}
             className="w-full bg-white/5 border border-[rgba(124,58,237,0.3)] rounded-xl px-4 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:border-purple-500/60 transition-all" />
-          <p className="text-xs text-[var(--text-muted)] mt-1">เพิ่มรางวัลเพื่อดึงดูดผู้เข้าร่วม</p>
+          <p className="text-xs text-[var(--text-muted)] mt-1">จำกัดจำนวนญาณสูงสุดที่ผู้เล่นแต่ละคนสามารถทายได้</p>
         </div>
 
         {/* Actions */}

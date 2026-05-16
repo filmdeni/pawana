@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
     subcategory?: string | null;
     is_featured: boolean;
     is_trending: boolean;
+    show_chart?: boolean;
     image_url?: string | null;
     image_position?: string;
     yes_label?: string;
@@ -41,13 +42,14 @@ export async function POST(req: NextRequest) {
       subcategory: body.subcategory ?? null,
       is_featured: body.is_featured,
       is_trending: body.is_trending,
+      show_chart: body.show_chart !== false,
       image_url: body.image_url ?? null,
       image_position: body.image_position ?? "50% 50%",
       yes_label: body.yes_label ?? "ใช่",
       no_label: body.no_label ?? "ไม่ใช่",
       status: "approved",
-      yes_pool: 0,
-      no_pool: 0,
+      yes_pool: 50,
+      no_pool: 50,
     })
     .select()
     .single();

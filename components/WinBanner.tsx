@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 
 interface WinBannerProps {
@@ -9,11 +10,10 @@ interface WinBannerProps {
   onClose: () => void;
 }
 
-// Play a triumphant chord on win
 function playWinSound() {
   try {
     const ctx = new AudioContext();
-    const notes = [523, 659, 784, 1047]; // C5 E5 G5 C6
+    const notes = [523, 659, 784, 1047];
     notes.forEach((freq, i) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -36,14 +36,13 @@ export default function WinBanner({ coins, xp, predictionTitle, onClose }: WinBa
 
   useEffect(() => {
     playWinSound();
-    timerRef.current = setTimeout(onClose, 6000);
+    timerRef.current = setTimeout(onClose, 8000);
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [onClose]);
 
-  return (
+  return createPortal(
     <div className="win-banner-backdrop" onClick={onClose}>
       <div className="win-banner-card" onClick={(e) => e.stopPropagation()}>
-        {/* Confetti particles */}
         <div className="win-confetti" aria-hidden>
           {Array.from({ length: 24 }).map((_, i) => (
             <span key={i} className="win-confetti-dot" style={{
@@ -53,10 +52,7 @@ export default function WinBanner({ coins, xp, predictionTitle, onClose }: WinBa
           ))}
         </div>
 
-        {/* Glow ring */}
         <div className="win-glow-ring" aria-hidden />
-
-        {/* Trophy icon */}
         <div className="win-trophy">🏆</div>
 
         <h2 className="win-title">ทายถูก!</h2>
@@ -64,7 +60,6 @@ export default function WinBanner({ coins, xp, predictionTitle, onClose }: WinBa
           {predictionTitle.length > 48 ? predictionTitle.slice(0, 48) + "…" : predictionTitle}
         </p>
 
-        {/* Reward chips */}
         <div className="win-rewards">
           <div className="win-chip win-chip-coins">
             <Image src="/images/point2.png" alt="coin" width={18} height={18} className="win-chip-icon" />
@@ -82,6 +77,7 @@ export default function WinBanner({ coins, xp, predictionTitle, onClose }: WinBa
           รับรางวัล
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

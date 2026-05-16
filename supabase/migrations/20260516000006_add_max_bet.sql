@@ -1,0 +1,2 @@
+ALTER TABLE predictions
+  ADD COLUMN IF NOT EXISTS max_bet integer NOT NULL DEFAULT 1000;

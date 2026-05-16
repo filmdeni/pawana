@@ -13,6 +13,7 @@ interface Prediction {
   description: string | null;
   status: Status;
   resolution: boolean | null;
+  resolution_index: number | null;
   yes_pool: number;
   no_pool: number;
   participant_count: number;
@@ -26,6 +27,8 @@ interface Prediction {
   subcategory: string | null;
   yes_label: string | null;
   no_label: string | null;
+  show_chart: boolean;
+  options: string[] | null;
   profiles: { username: string }[] | null;
 }
 
@@ -154,7 +157,7 @@ export default function QuestionsClient({ predictions: initial }: { predictions:
                     {p.participant_count.toLocaleString()}
                   </td>
                   <td className="px-4 py-3.5">
-                    <StatusBadge status={p.status} resolution={p.resolution} />
+                    <StatusBadge status={p.status} resolution={p.resolution} resolutionIndex={p.resolution_index} options={p.options} />
                   </td>
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-1.5">
@@ -193,29 +196,51 @@ export default function QuestionsClient({ predictions: initial }: { predictions:
                         />
                       )}
                       {/* Resolve */}
-                      {p.resolution === null && (
+                      {p.resolution === null && p.resolution_index === null && (
                         resolveId === p.id ? (
-                          <div className="flex items-center gap-1">
-                            <button
-                              disabled={isPending}
-                              onClick={() => handle(p.id, async () => {
-                                await callAction(p.id, "resolve", { resolution: true });
-                                updateLocal(p.id, { resolution: true });
-                                setResolveId(null);
-                              })}
-                              className="text-xs px-2 py-1 rounded-lg font-semibold transition-all"
-                              style={{ background: "#5ED3A622", color: "#5ED3A6" }}
-                            >YES ✓</button>
-                            <button
-                              disabled={isPending}
-                              onClick={() => handle(p.id, async () => {
-                                await callAction(p.id, "resolve", { resolution: false });
-                                updateLocal(p.id, { resolution: false });
-                                setResolveId(null);
-                              })}
-                              className="text-xs px-2 py-1 rounded-lg font-semibold transition-all"
-                              style={{ background: "#D96B6B22", color: "#D96B6B" }}
-                            >NO ✗</button>
+                          <div className="flex items-center gap-1 flex-wrap">
+                            {p.options && p.options.length > 0 ? (
+                              // Multi-option: show each option as a button
+                              <>
+                                {p.options.map((opt, idx) => (
+                                  <button
+                                    key={idx}
+                                    disabled={isPending}
+                                    onClick={() => handle(p.id, async () => {
+                                      await callAction(p.id, "resolve", { resolution_index: idx });
+                                      updateLocal(p.id, { resolution: true, resolution_index: idx });
+                                      setResolveId(null);
+                                    })}
+                                    className="text-xs px-2 py-1 rounded-lg font-semibold transition-all"
+                                    style={{ background: "#7C3AED22", color: "#a78bfa" }}
+                                  >{opt} ✓</button>
+                                ))}
+                              </>
+                            ) : (
+                              // Binary YES/NO
+                              <>
+                                <button
+                                  disabled={isPending}
+                                  onClick={() => handle(p.id, async () => {
+                                    await callAction(p.id, "resolve", { resolution: true });
+                                    updateLocal(p.id, { resolution: true });
+                                    setResolveId(null);
+                                  })}
+                                  className="text-xs px-2 py-1 rounded-lg font-semibold transition-all"
+                                  style={{ background: "#5ED3A622", color: "#5ED3A6" }}
+                                >{p.yes_label || "YES"} ✓</button>
+                                <button
+                                  disabled={isPending}
+                                  onClick={() => handle(p.id, async () => {
+                                    await callAction(p.id, "resolve", { resolution: false });
+                                    updateLocal(p.id, { resolution: false });
+                                    setResolveId(null);
+                                  })}
+                                  className="text-xs px-2 py-1 rounded-lg font-semibold transition-all"
+                                  style={{ background: "#D96B6B22", color: "#D96B6B" }}
+                                >{p.no_label || "NO"} ✗</button>
+                              </>
+                            )}
                             <button onClick={() => setResolveId(null)} className="text-xs text-[var(--text-muted)] px-1">ยกเลิก</button>
                           </div>
                         ) : (
@@ -278,9 +303,15 @@ export default function QuestionsClient({ predictions: initial }: { predictions:
 /* ── Create Modal ───────────────────────────────────────────── */
 
 const SUBCATEGORY_MAP: Record<number, string[]> = {
-  3: ["มวย", "ฟุตบอล", "บาสเกตบอล", "วอลเลย์บอล", "อีสปอร์ต", "อื่นๆ"],
-  2: ["PC", "มือถือ", "คอนโซล"],
+  1: ["K-Pop", "ดารา", "YouTuber / Streamer", "อินฟลูเอนเซอร์", "คู่รัก", "ข่าวซุบซิบ", "อื่นๆ"],
+  2: ["PC", "มือถือ", "คอนโซล", "อีสปอร์ต", "MMO / RPG", "Battle Royale", "อื่นๆ"],
+  3: ["ฟุตบอล", "บาสเกตบอล", "มวย", "วอลเลย์บอล", "เทนนิส", "กีฬาโอลิมปิก", "อื่นๆ"],
+  4: ["Bitcoin (BTC)", "Ethereum (ETH)", "Solana (SOL)", "XRP", "BNB", "Dogecoin (DOGE)", "หุ้นไทย", "หุ้น US", "อื่นๆ"],
+  5: ["TikTok", "X / Twitter", "YouTube", "Reddit", "Pantip", "ข่าวไวรัล", "อื่นๆ"],
+  6: ["การเมือง", "เทคโนโลยี", "บันเทิง", "สังคม", "ต่างประเทศ", "อื่นๆ"],
 };
+
+const CRYPTO_SUBCATS = new Set(["Bitcoin (BTC)", "Ethereum (ETH)", "Solana (SOL)", "XRP", "BNB", "Dogecoin (DOGE)"]);
 
 const CAT_CONFIG: Record<string, { bg: string; pill: string; accent: string }> = {
   ดราม่า:  { bg: "from-rose-950 via-pink-900 to-rose-950",       pill: "rgba(244,63,94,0.85)",  accent: "#f43f5e" },
@@ -299,6 +330,7 @@ interface CreateFields {
   subcategory: string | null;
   is_featured: boolean;
   is_trending: boolean;
+  show_chart: boolean;
   yes_label: string;
   no_label: string;
 }
@@ -311,7 +343,7 @@ function CreateModal({
   onCreated: (p: Prediction) => void;
 }) {
   const defaultEndsAt = () => {
-    const d = new Date(Date.now() + 24 * 3_600_000);
+    const d = new Date(Date.now() + 30 * 60_000); // default 30 นาที → Quick section
     const pad = (n: number) => String(n).padStart(2, "0");
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   };
@@ -324,6 +356,7 @@ function CreateModal({
     subcategory: null,
     is_featured: false,
     is_trending: false,
+    show_chart: true,
     yes_label: "ใช่",
     no_label: "ไม่ใช่",
   });
@@ -368,6 +401,7 @@ function CreateModal({
           ends_at: new Date(fields.ends_at).toISOString(),
           image_url: imageUrl,
           image_position: imagePosition,
+          show_chart: fields.show_chart,
         }),
       });
       if (!res.ok) {
@@ -548,21 +582,19 @@ function CreateModal({
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-2">วันสิ้นสุด</label>
-                <input
-                  type="datetime-local"
-                  required
-                  value={fields.ends_at}
-                  onChange={e => set("ends_at", e.target.value)}
-                  className={inputCls}
-                  style={{ ...inputStyle, colorScheme: "dark" }}
-                />
-              </div>
+              <DurationPicker
+                value={fields.ends_at}
+                onChange={v => set("ends_at", v)}
+                inputCls={inputCls}
+                inputStyle={inputStyle}
+              />
 
               <div className="flex items-center gap-8">
                 <Toggle label="Featured (โปรโมท)" checked={fields.is_featured} onChange={v => set("is_featured", v)} color="#D7B56D" />
                 <Toggle label="Trending (กำลังมาแรง)" checked={fields.is_trending} onChange={v => set("is_trending", v)} color="#88eeff" />
+                {CRYPTO_SUBCATS.has(fields.subcategory ?? "") && (
+                  <Toggle label="แสดงกราฟราคา" checked={fields.show_chart} onChange={v => set("show_chart", v)} color="#5ED3A6" />
+                )}
               </div>
 
               {error && <p className="text-xs text-[#D96B6B]">{error}</p>}
@@ -591,154 +623,19 @@ function CreateModal({
         </div>
 
         {/* Right: preview */}
-        <div className="w-80 flex-shrink-0 flex flex-col border-l border-[#2A1F45]"
-          style={{ background: "rgba(0,0,0,0.25)" }}>
-          {/* Tab switcher */}
-          <div className="flex border-b border-[#2A1F45] flex-shrink-0">
-            {(["card", "detail"] as const).map(tab => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setPreviewTab(tab)}
-                className="flex-1 py-3 text-[11px] font-bold tracking-wide transition-colors"
-                style={previewTab === tab
-                  ? { color: "#a78bfa", borderBottom: "2px solid #6F4BFF" }
-                  : { color: "rgba(255,255,255,0.3)" }}
-              >
-                {tab === "card" ? "การ์ด (Grid)" : "หน้า Detail"}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex-1 overflow-y-auto px-4 py-5">
-            {previewTab === "card" ? (
-              <div className="space-y-3">
-                <p className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: "rgba(167,139,250,0.5)" }}>
-                  ตัวอย่างบนหน้า /predict
-                </p>
-                {/* Card preview */}
-                <div className="glass rounded-2xl overflow-hidden">
-                  {/* Thumbnail */}
-                  <div className={`relative h-36 bg-gradient-to-br ${cat.bg} flex items-center justify-center overflow-hidden`}>
-                    <div className="absolute top-0 left-0 right-0 h-0.5"
-                      style={{ background: `linear-gradient(90deg,transparent,${cat.accent},transparent)` }} />
-                    {imagePreview
-                      ? <img src={imagePreview} alt="" className="w-full h-full object-cover" style={{ objectPosition: imagePosition }} /> // eslint-disable-line @next/next/no-img-element
-                      : <span className="text-5xl opacity-40">🔮</span>
-                    }
-                    <span className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold text-white backdrop-blur-sm"
-                      style={{ background: cat.pill }}>{catLabel}</span>
-                    {fields.is_featured && (
-                      <span className="absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full backdrop-blur-sm text-[11px] font-black"
-                        style={{ background: "rgba(217,107,107,0.25)", border: "1px solid rgba(217,107,107,0.5)", color: "#f87171" }}>
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block" />
-                        LIVE
-                      </span>
-                    )}
-                    <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#0e0e1a] to-transparent" />
-                  </div>
-                  {/* Body */}
-                  <div className="p-3.5 space-y-2.5">
-                    <h3 className="text-sm font-black text-white leading-snug line-clamp-2">
-                      {fields.title || "หัวข้อคำถามจะแสดงที่นี่"}
-                    </h3>
-                    <div>
-                      <div className="flex rounded-full overflow-hidden h-2 mb-1.5 gap-0.5" style={{ background: "rgba(255,255,255,0.06)" }}>
-                        <div className="rounded-l-full" style={{ width: "60%", background: "linear-gradient(90deg,#c2185b,#ef4444)" }} />
-                        <div className="rounded-r-full" style={{ width: "40%", background: "linear-gradient(90deg,#5b21b6,#8b5cf6)" }} />
-                      </div>
-                      <div className="flex justify-between text-[10px] font-black">
-                        <span className="text-[#5ED3A6]">✓ ใช่ 60%</span>
-                        <span className="text-[#D96B6B]">✗ ไม่ใช่ 40%</span>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      <div className="rounded-xl py-2 text-xs font-bold text-center text-white"
-                        style={{ background: "rgba(185,28,28,0.4)", border: "1px solid rgba(239,68,68,0.3)" }}>✓ ใช่</div>
-                      <div className="rounded-xl py-2 text-xs font-bold text-center text-white"
-                        style={{ background: "rgba(88,28,135,0.4)", border: "1px solid rgba(139,92,246,0.3)" }}>✗ ไม่ใช่</div>
-                    </div>
-                    <div className="flex justify-between text-[10px] text-[var(--text-muted)]">
-                      <span>🔥 1,000 คน</span>
-                      <span>⏱ {timeLeft}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: "rgba(167,139,250,0.5)" }}>
-                  ตัวอย่างหน้า /predict/[id]
-                </p>
-                {/* Detail header preview */}
-                <div className="rounded-2xl overflow-hidden" style={{ background: "#0e0e1a", border: "1px solid #2A1F45" }}>
-                  {/* image + title row */}
-                  <div className="p-4 flex gap-3">
-                    {imagePreview ? (
-                      <div className="relative w-24 h-24 rounded-xl overflow-hidden flex-shrink-0" style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={imagePreview} alt="" className="w-full h-full object-cover" style={{ objectPosition: imagePosition }} />
-                        <div className="absolute inset-0" style={{ background: "linear-gradient(90deg,transparent,#0e0e1a 90%)" }} />
-                      </div>
-                    ) : (
-                      <div className="w-24 h-24 rounded-xl flex-shrink-0 flex items-center justify-center text-3xl"
-                        style={{ background: "#1a1528", border: "1px dashed #35295A" }}>🔮</div>
-                    )}
-                    <div className="flex flex-col justify-center gap-1.5 min-w-0">
-                      <span className="text-[10px] px-2 py-0.5 rounded-full w-fit font-bold"
-                        style={{ background: cat.pill + "33", color: cat.accent, border: `1px solid ${cat.accent}44` }}>
-                        {catLabel}
-                      </span>
-                      <p className="text-sm font-black text-white leading-snug line-clamp-3">
-                        {fields.title || "หัวข้อคำถามจะแสดงที่นี่"}
-                      </p>
-                    </div>
-                  </div>
-                  {/* description */}
-                  {fields.description && (
-                    <div className="px-4 pb-3">
-                      <p className="text-xs text-[var(--text-muted)] leading-relaxed line-clamp-3">{fields.description}</p>
-                    </div>
-                  )}
-                  {/* stats row */}
-                  <div className="px-4 pb-4 flex gap-4 text-[11px]">
-                    <div className="flex flex-col">
-                      <span style={{ color: "rgba(255,255,255,0.3)" }}>สิ้นสุด</span>
-                      <span className="font-semibold text-white">{timeLeft}</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span style={{ color: "rgba(255,255,255,0.3)" }}>ผู้ร่วม</span>
-                      <span className="font-semibold text-white">1,000</span>
-                    </div>
-                    {fields.is_featured && (
-                      <div className="flex flex-col">
-                        <span style={{ color: "rgba(255,255,255,0.3)" }}>สถานะ</span>
-                        <span className="font-semibold" style={{ color: "#f87171" }}>🔴 LIVE</span>
-                      </div>
-                    )}
-                  </div>
-                  {/* vote bar */}
-                  <div className="px-4 pb-4">
-                    <div className="flex rounded-full overflow-hidden h-2.5 gap-0.5 mb-2" style={{ background: "rgba(255,255,255,0.06)" }}>
-                      <div className="rounded-l-full" style={{ width: "60%", background: "linear-gradient(90deg,#c2185b,#ef4444)" }} />
-                      <div className="rounded-r-full" style={{ width: "40%", background: "linear-gradient(90deg,#5b21b6,#8b5cf6)" }} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="rounded-xl py-2.5 text-center text-xs font-black text-white"
-                        style={{ background: "linear-gradient(135deg,rgba(185,28,28,0.6),rgba(220,38,38,0.45))", border: "1px solid rgba(239,68,68,0.4)" }}>
-                        ✓ ใช่
-                      </div>
-                      <div className="rounded-xl py-2.5 text-center text-xs font-black text-white"
-                        style={{ background: "linear-gradient(135deg,rgba(88,28,135,0.6),rgba(109,40,217,0.45))", border: "1px solid rgba(139,92,246,0.4)" }}>
-                        ✗ ไม่ใช่
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <PreviewPanel
+          title={fields.title}
+          description={fields.description}
+          catLabel={catLabel}
+          cat={cat}
+          imagePreview={imagePreview}
+          imagePosition={imagePosition}
+          isFeatured={fields.is_featured}
+          timeLeft={timeLeft}
+          endsAt={fields.ends_at}
+          yesLabel={fields.yes_label}
+          noLabel={fields.no_label}
+        />
 
       </div>
     </div>
@@ -755,6 +652,7 @@ interface EditFields {
   subcategory: string | null;
   is_featured: boolean;
   is_trending: boolean;
+  show_chart: boolean;
   image_url: string | null;
   image_position: string;
   yes_label: string;
@@ -784,6 +682,7 @@ function EditModal({
     subcategory: prediction.subcategory ?? null,
     is_featured: prediction.is_featured,
     is_trending: prediction.is_trending,
+    show_chart: prediction.show_chart !== false,
     image_url: prediction.image_url,
     image_position: prediction.image_position ?? "50% 50%",
     yes_label: prediction.yes_label ?? "ใช่",
@@ -828,6 +727,7 @@ function EditModal({
         subcategory: fields.subcategory,
         is_featured: fields.is_featured,
         is_trending: fields.is_trending,
+        show_chart: fields.show_chart,
         image_url: finalImageUrl,
         image_position: fields.image_position,
         yes_label: fields.yes_label,
@@ -849,6 +749,14 @@ function EditModal({
     }
   }
 
+  const catLabel = CATEGORIES.find(c => c.id === fields.category_id)?.label ?? "อื่นๆ";
+  const cat = CAT_CONFIG[catLabel] ?? CAT_CONFIG["อื่นๆ"];
+  const endsAtDate = fields.ends_at ? new Date(fields.ends_at) : new Date(Date.now() + 86400000);
+  const diff = endsAtDate.getTime() - Date.now();
+  const daysLeft = Math.ceil(diff / 86_400_000);
+  const hoursLeft = Math.ceil(diff / 3_600_000);
+  const timeLeft = daysLeft > 1 ? `${daysLeft} วัน` : hoursLeft > 0 ? `${hoursLeft} ชั่วโมง` : "หมดเวลา";
+
   const inputCls = "w-full rounded-xl px-3 py-2.5 text-sm text-[var(--text-primary)] outline-none focus:ring-1 focus:ring-[#6F4BFF] transition-all resize-none";
   const inputStyle = { background: "#12101C", border: "1px solid #2A1F45" };
 
@@ -858,7 +766,11 @@ function EditModal({
       style={{ background: "rgba(5,6,10,0.80)", backdropFilter: "blur(8px)" }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="glass rounded-2xl w-full max-w-xl max-h-[90vh] flex flex-col" style={{ border: "1px solid #35295A" }}>
+      <div className="glass rounded-2xl w-full flex overflow-hidden"
+        style={{ maxWidth: 960, maxHeight: "92vh", border: "1px solid #35295A" }}>
+
+        {/* Left: form */}
+        <div className="flex flex-col flex-1 min-w-0">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#2A1F45] flex-shrink-0">
           <h2 className="text-sm font-bold text-[var(--text-primary)]">แก้ไขคำถาม</h2>
@@ -868,8 +780,8 @@ function EditModal({
         </div>
 
         {/* Body — scrollable */}
-        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1">
-          <div className="px-6 py-5 space-y-5">
+        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 flex flex-col">
+          <div className="px-6 py-5 space-y-5 flex-1">
 
             {/* Category */}
             <div>
@@ -1007,18 +919,12 @@ function EditModal({
               </div>
             </div>
 
-            {/* Ends at */}
-            <div>
-              <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-2">วันสิ้นสุด</label>
-              <input
-                type="datetime-local"
-                required
-                value={fields.ends_at}
-                onChange={e => set("ends_at", e.target.value)}
-                className={inputCls}
-                style={{ ...inputStyle, colorScheme: "dark" }}
-              />
-            </div>
+            <DurationPicker
+              value={fields.ends_at}
+              onChange={v => set("ends_at", v)}
+              inputCls={inputCls}
+              inputStyle={inputStyle}
+            />
 
             {/* Toggles */}
             <div className="flex items-center gap-8">
@@ -1034,6 +940,14 @@ function EditModal({
                 onChange={v => set("is_trending", v)}
                 color="#88eeff"
               />
+              {CRYPTO_SUBCATS.has(fields.subcategory ?? "") && (
+                <Toggle
+                  label="แสดงกราฟราคา"
+                  checked={fields.show_chart}
+                  onChange={v => set("show_chart", v)}
+                  color="#5ED3A6"
+                />
+              )}
             </div>
 
             {error && <p className="text-xs text-[#D96B6B]">{error}</p>}
@@ -1060,6 +974,349 @@ function EditModal({
             </button>
           </div>
         </form>
+        </div>
+
+        {/* Right: preview */}
+        <PreviewPanel
+          title={fields.title}
+          description={fields.description}
+          catLabel={catLabel}
+          cat={cat}
+          imagePreview={imagePreview}
+          imagePosition={fields.image_position}
+          isFeatured={fields.is_featured}
+          timeLeft={timeLeft}
+          endsAt={fields.ends_at}
+          yesLabel={fields.yes_label}
+          noLabel={fields.no_label}
+        />
+
+      </div>
+    </div>
+  );
+}
+
+/* ── Preview Panel ──────────────────────────────────────────── */
+
+function PreviewPanel({
+  title, description, catLabel, cat, imagePreview, imagePosition,
+  isFeatured, timeLeft, endsAt, yesLabel, noLabel,
+}: {
+  title: string;
+  description: string;
+  catLabel: string;
+  cat: { bg: string; pill: string; accent: string };
+  imagePreview: string | null;
+  imagePosition: string;
+  isFeatured: boolean;
+  timeLeft: string;
+  endsAt: string;
+  yesLabel: string;
+  noLabel: string;
+}) {
+  const [tab, setTab] = useState<"card" | "detail">("card");
+
+  const diff = endsAt ? new Date(endsAt).getTime() - Date.now() : 86_400_000;
+  const isEpic = diff >= 3 * 86_400_000;
+  const thumbH = isEpic ? "h-44" : "h-36";
+
+  return (
+    <div className="w-80 flex-shrink-0 flex flex-col border-l border-[#2A1F45]"
+      style={{ background: "rgba(0,0,0,0.25)" }}>
+      <div className="flex border-b border-[#2A1F45] flex-shrink-0">
+        {(["card", "detail"] as const).map(t => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            className="flex-1 py-3 text-[11px] font-bold tracking-wide transition-colors"
+            style={tab === t
+              ? { color: "#a78bfa", borderBottom: "2px solid #6F4BFF" }
+              : { color: "rgba(255,255,255,0.3)" }}
+          >
+            {t === "card" ? "การ์ด (Grid)" : "หน้า Detail"}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-4 py-5">
+        {tab === "card" ? (
+          <div className="space-y-3">
+            <p className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: "rgba(167,139,250,0.5)" }}>
+              ตัวอย่างบนหน้า /predict
+            </p>
+            <div className="glass rounded-2xl overflow-hidden">
+              {/* Thumbnail — same height as actual card */}
+              <div className={`relative ${thumbH} bg-gradient-to-br ${cat.bg} flex items-center justify-center overflow-hidden`}>
+                <div className="absolute top-0 left-0 right-0 h-0.5"
+                  style={{ background: `linear-gradient(90deg,transparent,${cat.accent},transparent)` }} />
+                {imagePreview
+                  // eslint-disable-next-line @next/next/no-img-element
+                  ? <img src={imagePreview} alt="" className="w-full h-full object-cover"
+                      style={{ objectPosition: imagePosition }} />
+                  : <span className="text-5xl opacity-40">🔮</span>
+                }
+                <span className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold text-white backdrop-blur-sm"
+                  style={{ background: cat.pill }}>{catLabel}</span>
+                {isFeatured ? (
+                  <span className="absolute top-2.5 right-2.5 flex items-center gap-1 px-2 py-0.5 rounded-full backdrop-blur-sm text-[11px] font-black"
+                    style={{ background: "rgba(217,107,107,0.25)", border: "1px solid rgba(217,107,107,0.5)", color: "#f87171" }}>
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block" /> LIVE
+                  </span>
+                ) : (
+                  <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm text-[11px] font-bold text-orange-300">
+                    🔥 1K
+                  </span>
+                )}
+                <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#0e0e1a] to-transparent" />
+              </div>
+              {/* Body */}
+              <div className="p-3.5 space-y-2.5">
+                <h3 className="text-sm font-black text-white leading-snug line-clamp-2">
+                  {title || "หัวข้อคำถามจะแสดงที่นี่"}
+                </h3>
+                <div className="flex items-center gap-2 py-[5px]">
+                  <span className="text-[12px] text-[var(--text-muted)] flex-1">{yesLabel || "ใช่"}</span>
+                  <div className="relative h-[5px] w-20 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.07)" }}>
+                    <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: "60%", background: "#5ED3A6" }} />
+                  </div>
+                  <span className="text-[13px] font-bold text-white w-8 text-right">60%</span>
+                </div>
+                <div className="flex items-center gap-2 py-[5px]">
+                  <span className="text-[12px] text-[var(--text-muted)] flex-1">{noLabel || "ไม่ใช่"}</span>
+                  <div className="relative h-[5px] w-20 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.07)" }}>
+                    <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: "40%", background: "#D96B6B" }} />
+                  </div>
+                  <span className="text-[13px] font-bold text-white w-8 text-right">40%</span>
+                </div>
+                <div className="flex items-center gap-2 text-[11px] text-[var(--text-muted)] pt-2 border-t border-white/[0.05]">
+                  <span>⏱ {timeLeft}</span>
+                  <span className="ml-auto">👥 1,000</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: "rgba(167,139,250,0.5)" }}>
+              ตัวอย่างหน้า /predict/[id]
+            </p>
+            <div className="rounded-2xl overflow-hidden" style={{ background: "#0e0e1a", border: "1px solid #2A1F45" }}>
+              <div className="p-4 flex gap-3">
+                {imagePreview ? (
+                  <div className="relative w-24 h-24 rounded-xl overflow-hidden flex-shrink-0"
+                    style={{ border: "1px solid rgba(255,255,255,0.1)" }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={imagePreview} alt="" className="w-full h-full object-cover"
+                      style={{ objectPosition: imagePosition }} />
+                    <div className="absolute inset-0" style={{ background: "linear-gradient(90deg,transparent,#0e0e1a 90%)" }} />
+                  </div>
+                ) : (
+                  <div className="w-24 h-24 rounded-xl flex-shrink-0 flex items-center justify-center text-3xl"
+                    style={{ background: "#1a1528", border: "1px dashed #35295A" }}>🔮</div>
+                )}
+                <div className="flex flex-col justify-center gap-1.5 min-w-0">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full w-fit font-bold"
+                    style={{ background: cat.pill + "33", color: cat.accent, border: `1px solid ${cat.accent}44` }}>
+                    {catLabel}
+                  </span>
+                  <p className="text-sm font-black text-white leading-snug line-clamp-3">
+                    {title || "หัวข้อคำถามจะแสดงที่นี่"}
+                  </p>
+                </div>
+              </div>
+              {description && (
+                <div className="px-4 pb-3">
+                  <p className="text-xs text-[var(--text-muted)] leading-relaxed line-clamp-3">{description}</p>
+                </div>
+              )}
+              <div className="px-4 pb-4 flex gap-4 text-[11px]">
+                <div className="flex flex-col">
+                  <span style={{ color: "rgba(255,255,255,0.3)" }}>สิ้นสุด</span>
+                  <span className="font-semibold text-white">{timeLeft}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span style={{ color: "rgba(255,255,255,0.3)" }}>ผู้ร่วม</span>
+                  <span className="font-semibold text-white">1,000</span>
+                </div>
+                {isFeatured && (
+                  <div className="flex flex-col">
+                    <span style={{ color: "rgba(255,255,255,0.3)" }}>สถานะ</span>
+                    <span className="font-semibold" style={{ color: "#f87171" }}>🔴 LIVE</span>
+                  </div>
+                )}
+              </div>
+              <div className="px-4 pb-4">
+                <div className="flex rounded-full overflow-hidden h-2.5 gap-0.5 mb-2" style={{ background: "rgba(255,255,255,0.06)" }}>
+                  <div className="rounded-l-full" style={{ width: "60%", background: "#5ED3A6" }} />
+                  <div className="rounded-r-full" style={{ width: "40%", background: "#D96B6B" }} />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-xl py-2.5 text-center text-xs font-black"
+                    style={{ background: "rgba(94,211,166,0.15)", border: "1px solid rgba(94,211,166,0.4)", color: "#5ED3A6" }}>
+                    ✓ {yesLabel || "ใช่"}
+                  </div>
+                  <div className="rounded-xl py-2.5 text-center text-xs font-black"
+                    style={{ background: "rgba(217,107,107,0.15)", border: "1px solid rgba(217,107,107,0.4)", color: "#D96B6B" }}>
+                    ✗ {noLabel || "ไม่ใช่"}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Duration Picker ────────────────────────────────────────── */
+
+const DURATION_PRESETS = [
+  {
+    group: "⚡ Quick",
+    color: "#fb923c",
+    border: "rgba(251,146,60,0.3)",
+    bg: "rgba(251,146,60,0.12)",
+    items: [
+      { label: "5 นาที",  minutes: 5 },
+      { label: "15 นาที", minutes: 15 },
+      { label: "30 นาที", minutes: 30 },
+    ],
+  },
+  {
+    group: "🔥 Hot",
+    color: "#f43f5e",
+    border: "rgba(244,63,94,0.3)",
+    bg: "rgba(244,63,94,0.12)",
+    items: [
+      { label: "1 ชั่วโมง", minutes: 60 },
+      { label: "3 ชั่วโมง", minutes: 180 },
+      { label: "6 ชั่วโมง", minutes: 360 },
+    ],
+  },
+  {
+    group: "📅 Daily",
+    color: "#818cf8",
+    border: "rgba(129,140,248,0.3)",
+    bg: "rgba(129,140,248,0.12)",
+    items: [
+      { label: "24 ชั่วโมง", minutes: 1440 },
+      { label: "3 วัน",      minutes: 4320 },
+    ],
+  },
+  {
+    group: "🏆 Long",
+    color: "#D7B56D",
+    border: "rgba(215,181,109,0.3)",
+    bg: "rgba(215,181,109,0.10)",
+    items: [
+      { label: "7 วัน",  minutes: 10080 },
+      { label: "30 วัน", minutes: 43200 },
+    ],
+  },
+];
+
+function toLocalDatetime(ms: number) {
+  const d = new Date(ms);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function formatEndsAt(iso: string) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const diff = d.getTime() - Date.now();
+  if (diff <= 0) return "หมดเวลาแล้ว";
+  const mins = Math.round(diff / 60000);
+  if (mins < 60) return `อีก ${mins} นาที`;
+  const hrs = Math.round(diff / 3600000);
+  if (hrs < 24) return `อีก ${hrs} ชั่วโมง`;
+  const days = Math.round(diff / 86400000);
+  return `อีก ${days} วัน`;
+}
+
+function DurationPicker({
+  value,
+  onChange,
+  inputCls,
+  inputStyle,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  inputCls: string;
+  inputStyle: React.CSSProperties;
+}) {
+  const [showCustom, setShowCustom] = useState(false);
+
+  function applyPreset(minutes: number) {
+    onChange(toLocalDatetime(Date.now() + minutes * 60000));
+    setShowCustom(false);
+  }
+
+  const summary = value ? formatEndsAt(value) : "";
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <label className="text-xs font-semibold text-[var(--text-secondary)]">ระยะเวลา / วันสิ้นสุด</label>
+        {summary && (
+          <span className="text-[11px] font-bold" style={{ color: "#5ED3A6" }}>
+            ✓ {summary}
+          </span>
+        )}
+      </div>
+      <p className="text-[10px] mb-2" style={{ color: "rgba(255,255,255,0.3)" }}>
+        ⚡ Quick (&lt;1ชม.) → section "คนกำลังทาย" · 🔥 Hot/Daily → section "กระแสแรง" / "ใกล้เฉลย"
+      </p>
+
+      <div className="space-y-2">
+        {DURATION_PRESETS.map(group => (
+          <div key={group.group}>
+            <p className="text-[10px] font-bold mb-1.5" style={{ color: group.color }}>{group.group}</p>
+            <div className={`grid gap-1.5 ${group.items.length <= 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+              {group.items.map(item => {
+                const presetIso = toLocalDatetime(Date.now() + item.minutes * 60000);
+                const isActive = !showCustom && value && Math.abs(
+                  new Date(value).getTime() - new Date(presetIso).getTime()
+                ) < 90000;
+                return (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => applyPreset(item.minutes)}
+                    className="py-2 rounded-xl text-[12px] font-bold transition-all hover:brightness-110 active:scale-95"
+                    style={isActive
+                      ? { background: group.bg, border: `1px solid ${group.color}`, color: group.color }
+                      : { background: "#12101C", border: "1px solid #2A1F45", color: "var(--text-muted)" }}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+
+        {/* Custom datetime toggle */}
+        <button
+          type="button"
+          onClick={() => setShowCustom(v => !v)}
+          className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors mt-1"
+        >
+          {showCustom ? "▲ ซ่อน" : "▼ กำหนดเวลาเอง"}
+        </button>
+
+        {showCustom && (
+          <input
+            type="datetime-local"
+            required
+            value={value}
+            onChange={e => onChange(e.target.value)}
+            className={inputCls}
+            style={{ ...inputStyle, colorScheme: "dark" }}
+          />
+        )}
       </div>
     </div>
   );
@@ -1108,7 +1365,18 @@ function ActionButton({
   );
 }
 
-function StatusBadge({ status, resolution }: { status: Status; resolution: boolean | null }) {
+function StatusBadge({ status, resolution, resolutionIndex, options }: {
+  status: Status; resolution: boolean | null; resolutionIndex?: number | null; options?: string[] | null;
+}) {
+  if (resolutionIndex !== null && resolutionIndex !== undefined) {
+    const label = options?.[resolutionIndex] ?? `option ${resolutionIndex}`;
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg"
+        style={{ background: "#7C3AED22", color: "#a78bfa" }}>
+        เฉลยแล้ว ✓ {label}
+      </span>
+    );
+  }
   if (resolution !== null) {
     return (
       <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg"

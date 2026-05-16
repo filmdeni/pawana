@@ -16,44 +16,77 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const body = await req.json();
-  const { action, resolution, fields } = body as {
+  const { action, resolution, resolution_index, fields } = body as {
     action: string;
     resolution?: boolean;
-    fields?: { title?: string; description?: string; ends_at?: string; is_featured?: boolean; is_trending?: boolean; image_url?: string | null; image_position?: string; category_id?: number | null; subcategory?: string | null; yes_label?: string; no_label?: string };
+    resolution_index?: number;
+    fields?: { title?: string; description?: string; ends_at?: string; is_featured?: boolean; is_trending?: boolean; show_chart?: boolean; image_url?: string | null; image_position?: string; category_id?: number | null; subcategory?: string | null; yes_label?: string; no_label?: string };
   };
 
   let patch: Record<string, unknown> = {};
   if (action === "approve") patch = { status: "approved" };
   else if (action === "reject") patch = { status: "rejected" };
-  else if (action === "resolve" && resolution !== undefined) {
-    patch = { resolution, resolved_at: new Date().toISOString(), status: "approved" };
+  else if (action === "resolve" && (resolution !== undefined || resolution_index !== undefined)) {
+    const isMultiOption = resolution_index !== undefined;
+    patch = {
+      resolved_at: new Date().toISOString(),
+      status: "approved",
+      ...(isMultiOption
+        ? { resolution_index, resolution: true }
+        : { resolution }),
+    };
 
     // Update prediction first
     const { error: predError } = await supabase.from("predictions").update(patch).eq("id", id);
     if (predError) return NextResponse.json({ error: predError.message }, { status: 500 });
 
-    // Fetch prediction info + all votes
-    const { data: pred } = await supabase
+    // Fetch prediction info + all unclaimed votes
+    const { data: pred, error: predFetchErr } = await supabase
       .from("predictions")
-      .select("title, yes_pool, no_pool")
+      .select("title, yes_pool, no_pool, house_pool, options, option_pools")
       .eq("id", id)
       .single();
 
-    const { data: votes } = await supabase
-      .from("votes")
-      .select("id, user_id, choice, amount")
-      .eq("prediction_id", id);
+    if (predFetchErr || !pred) {
+      console.error("[resolve] pred fetch failed:", predFetchErr?.message);
+      return NextResponse.json({ error: "prediction fetch failed: " + predFetchErr?.message }, { status: 500 });
+    }
 
-    if (pred && votes && votes.length > 0) {
-      const winningPool = resolution ? pred.yes_pool : pred.no_pool;
-      const losingPool  = resolution ? pred.no_pool  : pred.yes_pool;
+    const { data: votes, error: votesFetchErr } = await supabase
+      .from("votes")
+      .select("id, user_id, choice, choice_index, amount, reward_claimed")
+      .eq("prediction_id", id)
+      .eq("reward_claimed", false);
+
+    if (votesFetchErr) {
+      console.error("[resolve] votes fetch failed:", votesFetchErr.message);
+      return NextResponse.json({ error: "votes fetch failed" }, { status: 500 });
+    }
+
+    if (votes && votes.length > 0) {
+      // Determine total pool and winning pool for payout calculation
+      let effTotal: number;
+      let effWinPool: number;
+
+      if (isMultiOption) {
+        const optionPools = (pred.option_pools as number[] | null) ?? [];
+        const hp = pred.house_pool ?? 500;
+        const poolsWithHouse = optionPools.map((p: number) => p + hp / optionPools.length);
+        effTotal = poolsWithHouse.reduce((s: number, v: number) => s + v, 0);
+        effWinPool = poolsWithHouse[resolution_index!] ?? 1;
+      } else {
+        const hp = pred.house_pool ?? 500;
+        const effYes = (pred.yes_pool ?? 0) + hp;
+        const effNo  = (pred.no_pool  ?? 0) + hp;
+        effTotal   = effYes + effNo;
+        effWinPool = resolution ? effYes : effNo;
+      }
 
       const notifications: {
         user_id: string; type: string; title: string; body: string;
         data: Record<string, unknown>;
       }[] = [];
 
-      // Fetch all winner profiles in one query
       const voterIds = votes.map((v) => v.user_id);
       const { data: profiles } = await supabase
         .from("profiles")
@@ -63,18 +96,25 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
 
       for (const vote of votes) {
-        const isWinner = vote.choice === resolution;
+        const isWinner = isMultiOption
+          ? vote.choice_index === resolution_index
+          : vote.choice === resolution;
         let coinsDelta = 0;
         const xpDelta = isWinner ? 50 : 10;
 
-        if (isWinner && winningPool > 0) {
-          const share = (vote.amount / winningPool) * losingPool * 0.95;
-          coinsDelta = Math.floor(vote.amount + share);
+        if (isWinner) {
+          const payout = Math.floor(vote.amount * (effTotal / Math.max(effWinPool, 1)) * 0.95);
+          coinsDelta = Math.max(payout, vote.amount);
         }
+
+        await supabase
+          .from("votes")
+          .update({ reward_claimed: true, reward_amount: coinsDelta })
+          .eq("id", vote.id);
 
         const profile = profileMap.get(vote.user_id);
         if (profile) {
-          await supabase
+          const { error: updateErr } = await supabase
             .from("profiles")
             .update({
               coins: profile.coins + coinsDelta,
@@ -83,6 +123,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
               total_predictions: profile.total_predictions + 1,
             })
             .eq("id", vote.user_id);
+          if (updateErr) console.error("[resolve] profile update failed:", vote.user_id, updateErr.message);
         }
 
         notifications.push({
@@ -92,12 +133,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
           body: isWinner
             ? `"${pred.title}" — คุณได้รับ ${coinsDelta.toLocaleString()} ญาณฯ`
             : `"${pred.title}" — เสียใจด้วย ไว้โชคดีครั้งหน้า`,
-          data: {
-            prediction_id: id,
-            coins: coinsDelta,
-            xp: xpDelta,
-            is_winner: isWinner,
-          },
+          data: { prediction_id: id, coins: coinsDelta, xp: xpDelta, is_winner: isWinner },
         });
       }
 
@@ -108,7 +144,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     return NextResponse.json({ ok: true });
   } else if (action === "update" && fields) {
-    const allowed = ["title", "description", "ends_at", "is_featured", "is_trending", "image_url", "image_position", "category_id", "subcategory", "yes_label", "no_label"] as const;
+    const allowed = ["title", "description", "ends_at", "is_featured", "is_trending", "show_chart", "image_url", "image_position", "category_id", "subcategory", "yes_label", "no_label"] as const;
     for (const k of allowed) if (fields[k] !== undefined) patch[k] = fields[k];
     if (Object.keys(patch).length === 0) return NextResponse.json({ error: "No fields" }, { status: 400 });
   } else {

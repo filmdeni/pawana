@@ -18,7 +18,6 @@ export async function proxy(request: NextRequest) {
               ...options,
               maxAge: 60 * 60 * 24 * 30,
               sameSite: "lax",
-              httpOnly: true,
               secure: process.env.NODE_ENV === "production",
             })
           );
@@ -29,8 +28,11 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // bypass middleware สำหรับ OAuth callback — ห้าม interfere กับ PKCE flow
-  if (pathname.startsWith("/auth/")) return supabaseResponse;
+  // bypass proxy สำหรับ OAuth callback — แต่ยังต้องผ่าน supabase ก่อนเพื่อ set cookies
+  if (pathname.startsWith("/auth/")) {
+    await supabase.auth.getUser();
+    return supabaseResponse;
+  }
 
   const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/register");
 

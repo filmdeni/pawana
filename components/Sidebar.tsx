@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useTransition } from "react";
 import {
   Home, TrendingUp, MessageSquare, Trophy, User,
-  ShoppingBag, Zap, Bell, Settings, LogOut, Loader2,
+  ShoppingBag, Zap, Bell, Settings, LogOut, Loader2, ShieldCheck,
 } from "lucide-react";
 import { logoutAction } from "@/lib/actions/auth";
 
@@ -20,7 +20,7 @@ const nav = [
 ];
 
 
-export default function Sidebar() {
+export default function Sidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
 
@@ -50,12 +50,12 @@ export default function Sidebar() {
                 key={href}
                 href={href}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative
-                  ${active ? "nav-active" : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/[0.03]"}`}
+                  ${active ? "nav-active" : "text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/[0.04]"}`}
                 style={active ? { borderLeftColor: accent } : undefined}
               >
                 <Icon
                   className="w-4 h-4 flex-shrink-0 transition-colors"
-                  style={{ color: active ? accent : undefined }}
+                  style={active ? { color: accent, filter: `drop-shadow(0 0 6px ${accent}88)` } : undefined}
                 />
                 <span className="flex-1">{label}</span>
                 {badge && !active && (
@@ -97,6 +97,20 @@ export default function Sidebar() {
         </Link>
         </div>
       </div>
+
+      {/* Admin button */}
+      {isAdmin && (
+        <div className="px-3 pb-2">
+          <Link
+            href="/admin"
+            className="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-sm font-bold transition-all"
+            style={{ background: "rgba(124,58,237,0.15)", border: "1px solid rgba(124,58,237,0.35)", color: "#a78bfa" }}
+          >
+            <ShieldCheck className="w-4 h-4 flex-shrink-0" />
+            Admin Panel
+          </Link>
+        </div>
+      )}
 
       {/* Bottom Utilities */}
       <div className="px-3 py-3 flex items-center justify-around" style={{ borderTop: "1px solid #1E1535" }}>

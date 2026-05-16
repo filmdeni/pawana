@@ -19,21 +19,36 @@ export default function ImagePositionPicker({
 
   const [px, py] = position.split(" ").map(v => parseFloat(v) || 50);
 
-  function posFromEvent(e: React.MouseEvent | MouseEvent) {
+  function posFromClient(clientX: number, clientY: number) {
     const rect = containerRef.current!.getBoundingClientRect();
-    const x = Math.round(Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100)));
-    const y = Math.round(Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100)));
+    const x = Math.round(Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100)));
+    const y = Math.round(Math.max(0, Math.min(100, ((clientY - rect.top) / rect.height) * 100)));
     onChange(`${x}% ${y}%`);
+  }
+
+  function posFromEvent(e: React.MouseEvent | MouseEvent) {
+    posFromClient(e.clientX, e.clientY);
   }
 
   useEffect(() => {
     function onMouseMove(e: MouseEvent) { if (dragging.current) posFromEvent(e); }
     function onMouseUp() { dragging.current = false; }
+    function onTouchMove(e: TouchEvent) {
+      if (!dragging.current) return;
+      e.preventDefault();
+      const t = e.touches[0];
+      posFromClient(t.clientX, t.clientY);
+    }
+    function onTouchEnd() { dragging.current = false; }
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("touchend", onTouchEnd);
     return () => {
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
     };
   }, [onChange]);
 
@@ -44,6 +59,7 @@ export default function ImagePositionPicker({
         className="relative rounded-xl overflow-hidden select-none"
         style={{ height, cursor: "crosshair", border: "1px solid rgba(255,255,255,0.1)" }}
         onMouseDown={e => { dragging.current = true; posFromEvent(e); }}
+        onTouchStart={e => { dragging.current = true; const t = e.touches[0]; posFromClient(t.clientX, t.clientY); }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={src} alt="" className="w-full h-full object-cover pointer-events-none"

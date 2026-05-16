@@ -9,7 +9,8 @@ const adminNav = [
   { href: "/admin",           label: "Dashboard",    icon: LayoutDashboard },
   { href: "/admin/questions", label: "คำถาม",         icon: MessageSquare },
   { href: "/admin/hero",      label: "Hero Banner",  icon: ImageIcon },
-  { href: "/admin/hot",       label: "กำลังร้อนแรง", icon: Flame },
+  { href: "/admin/hot",           label: "กำลังร้อนแรง",      icon: Flame },
+  { href: "/admin/home-sections", label: "Section หน้าแรก",   icon: LayoutDashboard },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

@@ -1,13 +1,15 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Suspense } from "react";
-import { Flame, TrendingUp, Zap, ChevronRight, MessageSquare } from "lucide-react";
+import StatsBar from "@/components/StatsBar";
+import { Flame, TrendingUp, Zap, ChevronRight, MessageSquare, Timer, Sparkles } from "lucide-react";
 import PredictionCard, { Prediction } from "@/components/PredictionCard";
 import LiveHeroCard from "@/components/LiveHeroCard";
 import ParallaxBg from "@/components/ParallaxBg";
-import { getTrendingPredictions, getUserVotesMap, getLeaderboard, PredictionRow } from "@/lib/queries/predictions";
+import { getTrendingPredictions, getQuickPredictions, getEndingSoonPredictions, getForYouPredictions, getUserVotesMap, getLeaderboard, getUserWorldRank, PredictionRow } from "@/lib/queries/predictions";
 import { getSessionUser } from "@/lib/actions/auth";
 import { clampPct } from "@/lib/poolDisplay";
+import { getHomeSections } from "@/lib/actions/appConfig";
 
 function rowToCard(r: PredictionRow): Prediction {
   const total = r.yes_pool + r.no_pool || 1;
@@ -19,6 +21,23 @@ function rowToCard(r: PredictionRow): Prediction {
   const catEmoji: Record<string, string> = {
     drama: "💔", game: "🎮", sports: "⚽", finance: "₿", viral: "🔥", other: "✨",
   };
+  const predictionType: "quick" | "standard" | "epic" | undefined =
+    msLeft <= 60 * 60_000       ? "quick" :
+    msLeft >= 30 * 86_400_000   ? "epic"  :
+    undefined;
+
+  const isMulti = Array.isArray(r.options) && r.options.length > 2;
+  let multiOptions: { label: string; percent: number }[] | undefined;
+  if (isMulti && r.options) {
+    const pools = r.option_pools ?? r.options.map(() => 0);
+    const poolTotal = pools.reduce((s, v) => s + v, 0);
+    const equalPct = Math.round(100 / r.options.length);
+    multiOptions = r.options.map((label, i) => ({
+      label,
+      percent: poolTotal > 0 ? Math.round(((pools[i] ?? 0) / poolTotal) * 100) : equalPct,
+    }));
+  }
+
   return {
     id: r.id,
     title: r.title,
@@ -29,11 +48,19 @@ function rowToCard(r: PredictionRow): Prediction {
     noPool:  r.no_pool  >= 1_000_000 ? `${(r.no_pool  / 1_000_000).toFixed(1)}M` : r.no_pool  >= 1_000 ? `${(r.no_pool  / 1_000).toFixed(0)}K` : String(r.no_pool),
     participants: r.participant_count,
     timeLeft,
+    endsAt: r.ends_at,
+    predictionType,
+    subcategory: (r as { subcategory?: string | null }).subcategory ?? null,
     hot: r.is_featured,
     trending: r.is_trending,
     image: catEmoji[r.categories?.slug ?? "other"] ?? "✨",
     imageUrl: r.image_url ?? undefined,
     imagePosition: r.image_position ?? "50% 50%",
+    resolution: (r as { resolution?: boolean | null }).resolution ?? null,
+    resolvedAt: (r as { resolved_at?: string | null }).resolved_at ?? null,
+    yesLabel: r.yes_label ?? "ใช่",
+    noLabel: r.no_label ?? "ไม่",
+    ...(multiOptions ? { options: multiOptions } : {}),
   };
 }
 
@@ -90,8 +117,10 @@ async function TrendingSection() {
     : MOCK;
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-      {predictions.map((p) => <PredictionCard key={p.id} p={p} />)}
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 md:gap-3">
+      {predictions.map((p) => (
+        <PredictionCard key={p.id} p={p} />
+      ))}
     </div>
   );
 }
@@ -100,7 +129,138 @@ function TrendingSkeleton() {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
       {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="shimmer rounded-xl h-40" />
+        <div key={i} className="shimmer rounded-xl h-52" />
+      ))}
+    </div>
+  );
+}
+
+function LiveSkeleton() {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+      <div className="col-span-2 md:col-span-2 shimmer rounded-xl h-52" />
+      <div className="shimmer rounded-xl h-52" />
+      <div className="shimmer rounded-xl h-52" />
+    </div>
+  );
+}
+
+function EndingSoonSkeleton() {
+  return (
+    <div className="flex gap-3 md:gap-4 overflow-x-auto pb-1 scrollbar-none">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="flex-shrink-0 w-[82vw] sm:w-[62vw] md:w-[calc(33%-8px)]">
+          <div className="shimmer rounded-xl h-52" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ForYouSkeleton() {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+      <div className="col-span-2 md:col-span-1 shimmer rounded-xl h-52" />
+      <div className="shimmer rounded-xl h-52" />
+      <div className="shimmer rounded-xl h-52" />
+    </div>
+  );
+}
+
+async function QuickSection() {
+  const [dbPredictions, user] = await Promise.all([
+    getQuickPredictions(4).catch(() => []),
+    getSessionUser().catch(() => null),
+  ]);
+
+  let votesMap: Record<string, { choiceLabel: string; amount: number }> = {};
+  if (user && dbPredictions.length > 0) {
+    const raw = await getUserVotesMap(dbPredictions.map((r) => r.id), user.id);
+    for (const [pid, v] of Object.entries(raw)) {
+      const row = dbPredictions.find((r) => r.id === pid);
+      const label = v.choice_index != null
+        ? (row?.options?.[v.choice_index] ?? (v.choice ? row?.yes_label ?? "ใช่" : row?.no_label ?? "ไม่ใช่"))
+        : (v.choice ? row?.yes_label ?? "ใช่" : row?.no_label ?? "ไม่ใช่");
+      votesMap[pid] = { choiceLabel: label, amount: v.amount };
+    }
+  }
+
+  const predictions: Prediction[] = dbPredictions.length > 0
+    ? dbPredictions.map((r) => ({ ...rowToCard(r), userVote: votesMap[r.id] ?? null }))
+    : MOCK.slice(0, 4);
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 md:gap-3">
+      {predictions.map((p, i) => (
+        <div key={p.id} className={i === 0 ? "col-span-2 md:col-span-2" : ""}>
+          <PredictionCard p={p} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+async function EndingSoonSection() {
+  const [dbPredictions, user] = await Promise.all([
+    getEndingSoonPredictions(4).catch(() => []),
+    getSessionUser().catch(() => null),
+  ]);
+
+  let votesMap: Record<string, { choiceLabel: string; amount: number }> = {};
+  if (user && dbPredictions.length > 0) {
+    const raw = await getUserVotesMap(dbPredictions.map((r) => r.id), user.id);
+    for (const [pid, v] of Object.entries(raw)) {
+      const row = dbPredictions.find((r) => r.id === pid);
+      const label = v.choice_index != null
+        ? (row?.options?.[v.choice_index] ?? (v.choice ? row?.yes_label ?? "ใช่" : row?.no_label ?? "ไม่ใช่"))
+        : (v.choice ? row?.yes_label ?? "ใช่" : row?.no_label ?? "ไม่ใช่");
+      votesMap[pid] = { choiceLabel: label, amount: v.amount };
+    }
+  }
+
+  const predictions: Prediction[] = dbPredictions.length > 0
+    ? dbPredictions.map((r) => ({ ...rowToCard(r), userVote: votesMap[r.id] ?? null }))
+    : MOCK.slice(0, 4);
+
+  return (
+    <div className="flex gap-2.5 overflow-x-auto pb-1 snap-x snap-mandatory scrollbar-none">
+      {predictions.map((p) => (
+        <div key={p.id} className="flex-shrink-0 w-[72vw] sm:w-[52vw] md:w-[calc(33%-6px)] snap-start">
+          <PredictionCard p={p} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+async function ForYouSection() {
+  const [dbPredictions, user] = await Promise.all([
+    getForYouPredictions(4).catch(() => []),
+    getSessionUser().catch(() => null),
+  ]);
+
+  let votesMap: Record<string, { choiceLabel: string; amount: number }> = {};
+  if (user && dbPredictions.length > 0) {
+    const raw = await getUserVotesMap(dbPredictions.map((r) => r.id), user.id);
+    for (const [pid, v] of Object.entries(raw)) {
+      const row = dbPredictions.find((r) => r.id === pid);
+      const label = v.choice_index != null
+        ? (row?.options?.[v.choice_index] ?? (v.choice ? row?.yes_label ?? "ใช่" : row?.no_label ?? "ไม่ใช่"))
+        : (v.choice ? row?.yes_label ?? "ใช่" : row?.no_label ?? "ไม่ใช่");
+      votesMap[pid] = { choiceLabel: label, amount: v.amount };
+    }
+  }
+
+  const predictions: Prediction[] = dbPredictions.length > 0
+    ? dbPredictions.map((r) => ({ ...rowToCard(r), userVote: votesMap[r.id] ?? null }))
+    : [...MOCK].reverse().slice(0, 4);
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 md:gap-3">
+      {predictions.map((p) => (
+        <div key={p.id}>
+          <PredictionCard p={p} />
+        </div>
       ))}
     </div>
   );
@@ -108,7 +268,10 @@ function TrendingSkeleton() {
 
 async function UserRankCard() {
   const user = await getSessionUser().catch(() => null);
-  const username = user?.user_metadata?.username ?? "MysticPredictor";
+  const rankData = user ? await getUserWorldRank(user.id).catch(() => null) : null;
+  const worldRank = rankData ? `#${rankData.rank.toLocaleString()}` : "-";
+  const coins = rankData ? rankData.coins.toLocaleString() : "-";
+  const accuracy = rankData ? `${rankData.accuracy_pct}%` : "-";
   return (
     <div className="rounded-2xl overflow-hidden flex-shrink-0 flex flex-col"
       style={{ border: "1px solid rgba(255,255,255,0.07)" }}>
@@ -138,9 +301,9 @@ async function UserRankCard() {
       <div className="px-3 py-3" style={{ background: "#101115" }}>
         <div className="grid grid-cols-3 gap-1.5">
           {[
-            { label: "อันดับโลก",     value: "#24" },
-            { label: "พาวนาคงเหลือ", value: "12,450" },
-            { label: "อัตราความแม่น", value: "78%" },
+            { label: "อันดับโลก",     value: worldRank },
+            { label: "พาวนาคงเหลือ", value: coins },
+            { label: "อัตราความแม่น", value: accuracy },
           ].map((s) => (
             <div key={s.label} className="rounded-lg py-2.5 flex flex-col items-center gap-1" style={{ background: "rgba(255,255,255,0.04)" }}>
               <p className="text-[9px] text-[#6B6585] leading-none text-center">{s.label}</p>
@@ -171,11 +334,11 @@ async function LeaderboardWidget() {
   return (
     <div className="rounded-2xl p-4 border border-white/5 flex-shrink-0 flex flex-col" style={{ background: "#101115" }}>
       <div className="flex items-center justify-between mb-3 flex-shrink-0">
-        <div className="flex items-center gap-2">
+        <div className="section-heading">
           <TrendingUp className="w-4 h-4 text-yellow-400" />
           <h2 className="text-sm font-bold">นักพยากรณ์ยอดนิยม</h2>
         </div>
-        <Link href="/ranking" className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1">
+        <Link href="/ranking" className="see-all-link">
           ดูทั้งหมด <ChevronRight className="w-3 h-3" />
         </Link>
       </div>
@@ -211,7 +374,10 @@ async function LeaderboardWidget() {
   );
 }
 
-export default function HomePage() {
+export default async function HomePage() {
+  const s = await getHomeSections().catch(() => null);
+  const show = (key: keyof NonNullable<typeof s>) => !s || s[key] !== false;
+
   return (
     <div className="relative">
       <ParallaxBg variant="indigo" />
@@ -220,23 +386,46 @@ export default function HomePage() {
       style={{ zIndex: 1 }}
     >
       {/* MAIN CONTENT */}
-      <div className="min-w-0 space-y-4 md:space-y-5">
+      <div className="min-w-0 space-y-5 md:space-y-6">
 
         {/* Hero — LIVE prediction card */}
-        <LiveHeroCard />
+        {show("hero") && <LiveHeroCard />}
 
-        {/* Trending Predictions */}
+        {/* Stats bar */}
+        {show("stats_bar") && <StatsBar />}
+
+        {/* 1. ทายไว */}
+        {show("quick") && (
         <section>
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Flame className="w-4 h-4 text-orange-400 fire-flicker" />
-              <h2 className="text-sm font-bold text-[var(--text-primary)]">กำลังร้อนแรง</h2>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                style={{ background: "rgba(217,107,107,0.15)", border: "1px solid rgba(217,107,107,0.3)", color: "#f87171" }}>
+            <div className="section-heading">
+              <Zap className="w-4 h-4 text-red-400" style={{ animation: "live-pulse 1s ease-in-out infinite" }} />
+              <h2 className="text-sm font-bold text-[var(--text-primary)]">คนกำลังทาย</h2>
+              <span className="flex items-center gap-1.5 text-[10px] font-black px-2 py-0.5 rounded-full tracking-widest"
+                style={{ background: "rgba(220,30,30,0.25)", border: "1px solid rgba(220,60,60,0.60)", color: "#ff7070" }}>
+                <span className="card-live-dot" />
                 LIVE
               </span>
             </div>
-            <Link href="/predict" className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1">
+            <Link href="/predict" className="see-all-link">
+              ดูทั้งหมด <ChevronRight className="w-3 h-3" />
+            </Link>
+          </div>
+          <Suspense fallback={<LiveSkeleton />}>
+            <QuickSection />
+          </Suspense>
+        </section>
+        )}
+
+        {/* 2. กระแสแรง */}
+        {show("trending") && (
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <div className="section-heading">
+              <Flame className="w-4 h-4 text-orange-400 fire-flicker" />
+              <h2 className="text-sm font-bold text-[var(--text-primary)]">กระแสแรง</h2>
+            </div>
+            <Link href="/predict" className="see-all-link">
               ดูทั้งหมด <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
@@ -244,11 +433,57 @@ export default function HomePage() {
             <TrendingSection />
           </Suspense>
         </section>
+        )}
 
-        {/* Daily Missions */}
+        {/* 3. ใกล้เฉลย */}
+        {show("ending_soon") && (
         <section>
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
+            <div className="section-heading">
+              <Timer className="w-4 h-4 text-amber-400" style={{ animation: "live-pulse 1.4s ease-in-out infinite" }} />
+              <h2 className="text-sm font-bold" style={{ color: "#fbbf24" }}>ใกล้เฉลย</h2>
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-full tracking-wide"
+                style={{ background: "rgba(251,146,60,0.2)", border: "1px solid rgba(251,146,60,0.5)", color: "#fb923c" }}>
+                ⏳ ENDING SOON
+              </span>
+            </div>
+            <Link href="/predict" className="see-all-link">
+              ดูทั้งหมด <ChevronRight className="w-3 h-3" />
+            </Link>
+          </div>
+          <Suspense fallback={<EndingSoonSkeleton />}>
+            <EndingSoonSection />
+          </Suspense>
+        </section>
+        )}
+
+        {/* 4. เพื่อคุณ */}
+        {show("for_you") && (
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <div className="section-heading">
+              <Sparkles className="w-4 h-4 text-violet-400" />
+              <h2 className="text-sm font-bold text-[var(--text-primary)]">เพื่อคุณ</h2>
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                style={{ background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.35)", color: "#a78bfa" }}>
+                🧠 AI PICKS
+              </span>
+            </div>
+            <Link href="/predict" className="see-all-link">
+              ดูทั้งหมด <ChevronRight className="w-3 h-3" />
+            </Link>
+          </div>
+          <Suspense fallback={<ForYouSkeleton />}>
+            <ForYouSection />
+          </Suspense>
+        </section>
+        )}
+
+        {/* Daily Missions */}
+        {show("missions") && (
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <div className="section-heading">
               <Zap className="w-4 h-4 text-yellow-400" />
               <h2 className="text-sm font-bold text-[var(--text-primary)]">ภารกิจประจำวัน</h2>
             </div>
@@ -285,8 +520,10 @@ export default function HomePage() {
             })}
           </div>
         </section>
+        )}
 
         {/* Shop Preview */}
+        {show("shop") && (
         <section
           className="rounded-2xl overflow-hidden border border-[rgba(244,194,74,0.2)] relative"
           style={{ background: "linear-gradient(135deg,rgba(76,29,149,.5) 0%,rgba(18,18,31,.95) 100%)" }}
@@ -319,30 +556,36 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+        )}
       </div>
 
       {/* RIGHT PANEL */}
       <div
-        className="min-w-0 md:sticky md:top-14 flex flex-col gap-4 md:overflow-y-auto md:h-[calc(100vh-56px)]"
+        className="min-w-0 md:sticky md:top-14 flex flex-row md:flex-col gap-4 overflow-x-auto md:overflow-x-visible md:overflow-y-auto md:h-[calc(100vh-56px)] pb-2 md:pb-0 snap-x snap-mandatory md:snap-none"
       >
         {/* User Rank Card */}
-        <Suspense fallback={<UserRankSkeleton />}>
-          <UserRankCard />
-        </Suspense>
+        {show("rank_card") && (
+          <Suspense fallback={<UserRankSkeleton />}>
+            <UserRankCard />
+          </Suspense>
+        )}
 
         {/* Top Predictors Leaderboard */}
-        <Suspense fallback={<div className="shimmer rounded-2xl" style={{ height: "260px" }} />}>
-          <LeaderboardWidget />
-        </Suspense>
+        {show("leaderboard") && (
+          <Suspense fallback={<div className="shimmer rounded-2xl" style={{ height: "260px" }} />}>
+            <LeaderboardWidget />
+          </Suspense>
+        )}
 
         {/* Community Trending Panel */}
+        {show("community") && (
         <div className="rounded-2xl p-4 border border-white/5 flex-shrink-0 flex flex-col" style={{ background: "#101115" }}>
           <div className="flex items-center justify-between mb-3 flex-shrink-0">
-            <div className="flex items-center gap-2">
+            <div className="section-heading">
               <MessageSquare className="w-4 h-4 text-purple-400" />
               <h2 className="text-sm font-bold">กระแสล่าสุดในชุมชน</h2>
             </div>
-            <Link href="/board" className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1">
+            <Link href="/board" className="see-all-link">
               ดูทั้งหมด <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
@@ -368,6 +611,7 @@ export default function HomePage() {
             ))}
           </div>
         </div>
+        )}
 
         <div className="flex-[10]" />
       </div>

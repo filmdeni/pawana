@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { ArrowLeft, Clock, Users, TrendingUp } from "lucide-react";
 import ReportResolutionPanel from "@/components/ReportResolutionPanel";
+import ResultRevealOverlay from "@/components/ResultRevealOverlay";
 import ParallaxBg from "@/components/ParallaxBg";
-import { getPredictionById, getUserVote } from "@/lib/queries/predictions";
+import { getPredictionById, getUserVote, getRelatedPredictions } from "@/lib/queries/predictions";
 import { getSessionUser } from "@/lib/actions/auth";
 import { createClient } from "@/lib/supabase/server";
 import TabsSection from "./TabsSection";
 import VsModal from "./VsModal";
 import CryptoPriceChart from "@/components/CryptoPriceChart";
+import CinematicPoolBar from "@/components/CinematicPoolBar";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -44,6 +46,7 @@ function closingLabel(endsAt: string): string {
 
 const SPORTS_CATEGORIES = ["กีฬา", "มวย", "ฟุตบอล", "บาสเกตบอล", "e-sport", "sport"];
 const CRYPTO_CATEGORIES = ["การเงิน", "finance", "crypto", "cryptocurrency", "หุ้น", "bitcoin"];
+const CRYPTO_SUBCATS = new Set(["Bitcoin (BTC)", "Ethereum (ETH)", "Solana (SOL)", "XRP", "BNB", "Dogecoin (DOGE)"]);
 
 const COIN_MAP: Record<string, { id: string; symbol: string; name: string }> = {
   bitcoin: { id: "bitcoin", symbol: "BTC", name: "Bitcoin" },
@@ -130,7 +133,12 @@ function timeAgoStr(iso: string): string {
 
 export default async function PredictDetailPage({ params, searchParams }: PageProps) {
   const [{ id }, { vote }] = await Promise.all([params, searchParams]);
-  const preselect: boolean | null = vote === "yes" ? true : vote === "no" ? false : null;
+  const voteNum = vote !== undefined && !isNaN(parseInt(vote)) ? parseInt(vote) : null;
+  const preselect: boolean | null =
+    vote === "yes" || voteNum === 0 ? true :
+    vote === "no"  || voteNum === 1 ? false :
+    null;
+  const preselectIndex: number | null = voteNum;
 
   const [dbPred, user] = await Promise.all([
     getPredictionById(id).catch(() => null),
@@ -145,6 +153,8 @@ export default async function PredictDetailPage({ params, searchParams }: PagePr
         description: dbPred.description ?? "",
         yesPool: dbPred.yes_pool,
         noPool: dbPred.no_pool,
+        housePool: dbPred.house_pool ?? 500,
+        maxBet: dbPred.max_bet ?? 1000,
         participants: dbPred.participant_count,
         endsAt: dbPred.ends_at,
         creator: dbPred.profiles?.display_name ?? dbPred.profiles?.username ?? "unknown",
@@ -155,21 +165,35 @@ export default async function PredictDetailPage({ params, searchParams }: PagePr
         noLabel: dbPred.no_label ?? "ไม่ใช่",
         options: dbPred.options ?? null,
         optionPools: dbPred.option_pools ?? null,
+        showChart: dbPred.show_chart !== false,
+        subcategory: dbPred.subcategory ?? null,
         createdAt: null as string | null,
       }
-    : { ...(MOCK_FALLBACK[id] ?? MOCK_FALLBACK["1"]), categoryEmoji: "", createdAt: null as string | null, options: null, optionPools: null };
+    : { ...(MOCK_FALLBACK[id] ?? MOCK_FALLBACK["1"]), categoryEmoji: "", createdAt: null as string | null, options: null, optionPools: null, showChart: true, subcategory: null };
 
-  const [userVote, userProfile] = await Promise.all([
+  const categorySlug = dbPred?.categories?.slug ?? null;
+  const [userVote, userProfile, relatedRaw] = await Promise.all([
     user && dbPred ? getUserVote(dbPred.id, user.id).catch(() => null) : Promise.resolve(null),
     user ? (async () => {
       const supabase = await createClient();
-      const { data } = await supabase.from("profiles").select("xp, level").eq("id", user.id).single();
+      const { data } = await supabase.from("profiles").select("xp, level, coins").eq("id", user.id).single();
       return data;
     })().catch(() => null) : Promise.resolve(null),
+    getRelatedPredictions(id, categorySlug, 3).catch(() => []),
   ]);
 
-  const total = pred.yesPool + pred.noPool || 1;
-  const yesPct = Math.round((pred.yesPool / total) * 100);
+  const related = relatedRaw.map((r) => ({
+    id: r.id,
+    title: r.title,
+    category: r.categories?.label ?? "อื่นๆ",
+    categoryEmoji: r.categories?.emoji ?? "",
+    endsAt: r.ends_at,
+  }));
+
+  const effYes = pred.yesPool + (pred.housePool ?? 500);
+  const effNo  = pred.noPool  + (pred.housePool ?? 500);
+  const total = effYes + effNo;
+  const yesPct = Math.round((effYes / total) * 100);
   const noPct = 100 - yesPct;
 
   const isSports = SPORTS_CATEGORIES.some((c) => pred.category.toLowerCase().includes(c.toLowerCase()));
@@ -182,7 +206,10 @@ export default async function PredictDetailPage({ params, searchParams }: PagePr
     : [pred.yesPool, pred.noPool];
   const chartData = isSports ? buildMockChartData(chartOpts, chartPools, pred.endsAt, pred.createdAt) : null;
 
-  const detectedCoin = isCrypto ? detectCoin(pred.title + " " + pred.description) : null;
+  const isCryptoSubcat = pred.subcategory ? CRYPTO_SUBCATS.has(pred.subcategory) : isCrypto;
+  const detectedCoin = isCryptoSubcat
+    ? (detectCoin(pred.title + " " + pred.description + " " + (pred.subcategory ?? "")) ?? COIN_MAP["bitcoin"])
+    : null;
   const cryptoPrices = detectedCoin ? await fetchCryptoPrices(detectedCoin.id) : [];
 
   return (
@@ -212,10 +239,17 @@ export default async function PredictDetailPage({ params, searchParams }: PagePr
                   {pred.categoryEmoji && <span className="mr-1">{pred.categoryEmoji}</span>}
                   {pred.category}
                 </span>
-                <span className="text-xs text-[var(--text-muted)] flex items-center gap-1 ml-auto">
-                  <Clock className="w-3 h-3" />
-                  จบใน{timeLeft(pred.endsAt)} ({closingLabel(pred.endsAt)})
-                </span>
+                {new Date(pred.endsAt).getTime() - Date.now() <= 0 ? (
+                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg ml-auto text-xs font-bold"
+                    style={{ background: "rgba(94,211,166,0.1)", border: "1px solid rgba(94,211,166,0.25)", color: "#5ED3A6" }}>
+                    ✓ หมดเวลาแล้ว · {closingLabel(pred.endsAt)}
+                  </span>
+                ) : (
+                  <span className="text-xs text-[var(--text-muted)] flex items-center gap-1 ml-auto">
+                    <Clock className="w-3 h-3" />
+                    จบใน{timeLeft(pred.endsAt)} ({closingLabel(pred.endsAt)})
+                  </span>
+                )}
               </div>
 
               <h1 className="text-lg font-black text-[var(--text-primary)] leading-snug">
@@ -243,7 +277,7 @@ export default async function PredictDetailPage({ params, searchParams }: PagePr
             </div>
 
             {/* image side */}
-            {pred.image_url ? (
+            {pred.image_url && (
               <div className="hidden sm:block w-2/5 flex-shrink-0 relative">
                 <img
                   src={pred.image_url}
@@ -253,60 +287,23 @@ export default async function PredictDetailPage({ params, searchParams }: PagePr
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-[var(--bg-card)] via-transparent to-transparent" />
               </div>
-            ) : (
-              <div className="hidden sm:flex w-2/5 flex-shrink-0 flex-col justify-center gap-3 pr-5 pl-2 py-5">
-                {[
-                  { label: pred.yesLabel ?? "ใช่", pct: yesPct, color: "#5ED3A6" },
-                  { label: pred.noLabel ?? "ไม่ใช่", pct: noPct, color: "#D96B6B" },
-                ].map((opt) => (
-                  <div key={opt.label} className="flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-[var(--text-muted)] font-medium truncate">{opt.label}</span>
-                      <span className="font-bold ml-2 flex-shrink-0" style={{ color: opt.color }}>{opt.pct}%</span>
-                    </div>
-                    <div className="h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.07)" }}>
-                      <div className="h-full rounded-full transition-all duration-700" style={{ width: `${opt.pct}%`, background: opt.color }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
             )}
           </div>
 
-          {/* ── Crypto price chart ────────────────────────── */}
-          {detectedCoin && cryptoPrices.length > 0 && (
-            <div className="px-4 pb-2">
-              <CryptoPriceChart
-                symbol={detectedCoin.symbol}
-                coinName={detectedCoin.name}
-                data={cryptoPrices}
-              />
-            </div>
-          )}
-
-          {/* ── VS split / Sports layout ──────────────────── */}
-          <VsModal
-            predictionId={id}
-            yesPct={yesPct}
-            noPct={noPct}
-            yesPool={pred.yesPool}
-            noPool={pred.noPool}
-            initialYesPool={pred.yesPool}
-            initialNoPool={pred.noPool}
-            endsAt={pred.endsAt}
-            userVote={userVote}
-            isLoggedIn={!!user}
-            yesLabel={pred.yesLabel}
-            noLabel={pred.noLabel}
-            options={pred.options}
-            optionPools={pred.optionPools}
-            userXp={userProfile?.xp ?? 0}
-            userLevel={userProfile?.level ?? 1}
-            initialChoice={preselect}
-            isSports={isSports}
-            chartData={chartData ?? undefined}
-            chartOptions={isSports ? chartOpts : undefined}
-          />
+          {/* ── Cinematic pool bar ───────────────────────── */}
+          <div className="px-5 pt-4 pb-5" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+            <CinematicPoolBar
+              yesPct={yesPct}
+              noPct={noPct}
+              yesPool={pred.yesPool}
+              noPool={pred.noPool}
+              live
+              yesLabel={pred.yesLabel ?? "ใช่"}
+              noLabel={pred.noLabel ?? "ไม่ใช่"}
+              options={pred.options as string[] | null}
+              optionPools={pred.optionPools as number[] | null}
+            />
+          </div>
 
           {/* ── Stats row ─────────────────────────────────── */}
           <div className="flex items-center justify-between px-5 py-3 mx-4 mb-4 rounded-xl border border-white/5 bg-white/[0.03] text-sm">
@@ -332,13 +329,78 @@ export default async function PredictDetailPage({ params, searchParams }: PagePr
           </div>
         </div>
 
-        {/* Resolution reporting */}
-        <ReportResolutionPanel predictionId={id} endsAt={pred.endsAt} />
+        {/* ── Vote / Sports card ────────────────────────── */}
+        <div className="glass rounded-2xl overflow-hidden">
+          {pred.showChart && detectedCoin && cryptoPrices.length > 0 && (
+            <div className="px-4 pt-4 pb-2">
+              <CryptoPriceChart
+                symbol={detectedCoin.symbol}
+                coinName={detectedCoin.name}
+                data={cryptoPrices}
+              />
+            </div>
+          )}
+          <VsModal
+            predictionId={id}
+            yesPct={yesPct}
+            noPct={noPct}
+            yesPool={pred.yesPool}
+            noPool={pred.noPool}
+            initialYesPool={pred.yesPool}
+            initialNoPool={pred.noPool}
+            endsAt={pred.endsAt}
+            userVote={userVote}
+            isLoggedIn={!!user}
+            yesLabel={pred.yesLabel}
+            noLabel={pred.noLabel}
+            options={pred.options}
+            optionPools={pred.optionPools}
+            userXp={userProfile?.xp ?? 0}
+            userLevel={userProfile?.level ?? 1}
+            userBalance={userProfile?.coins ?? 0}
+            housePool={pred.housePool}
+            predMaxBet={pred.maxBet}
+            initialChoice={preselect}
+            initialChoiceIndex={preselectIndex}
+            isSports={isSports}
+            chartData={chartData ?? undefined}
+            chartOptions={isSports ? chartOpts : undefined}
+          />
+        </div>
+
+        {/* Result reveal overlay — shows just_voted feedback + win/lose after resolution */}
+        {dbPred && (
+          <ResultRevealOverlay
+            predictionId={id}
+            initialResolution={dbPred.resolution ?? null}
+            initialResolutionIndex={dbPred.resolution_index ?? null}
+            userVote={userVote}
+            rewardClaimed={userVote?.reward_claimed ?? false}
+            rewardAmount={userVote?.reward_amount ?? 0}
+            yesLabel={pred.yesLabel ?? "ใช่"}
+            noLabel={pred.noLabel ?? "ไม่ใช่"}
+            options={pred.options as string[] | null}
+            predictionTitle={pred.title}
+            related={related}
+          />
+        )}
+
+        {/* Resolution reporting — only for real DB predictions */}
+        {dbPred && (
+          <ReportResolutionPanel
+            predictionId={id}
+            endsAt={pred.endsAt}
+            resolution={dbPred.resolution ?? null}
+            yesLabel={pred.yesLabel ?? "ใช่"}
+            noLabel={pred.noLabel ?? "ไม่ใช่"}
+          />
+        )}
 
         {/* ── Tabs ─────────────────────────────────────────── */}
         <TabsSection predictionId={id} description={pred.description} creator={pred.creator} endsAt={pred.endsAt} />
       </div>
       </div>
+
     </div>
   );
 }

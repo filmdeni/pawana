@@ -14,10 +14,11 @@ export function useRealtimeVotes(predictionId: string, initial: VoteTotals) {
 
   useEffect(() => {
     const supabase = createClient();
+    // Unique name per effect instance so StrictMode double-invoke doesn't reuse a subscribed channel
+    const channelName = `realtime:votes:${predictionId}:${Math.random().toString(36).slice(2)}`;
 
-    // Subscribe to postgres_changes on votes table
     const channel = supabase
-      .channel(`votes:${predictionId}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {

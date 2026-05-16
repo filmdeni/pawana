@@ -12,6 +12,17 @@ const sportsSubs = [
   { key: "Boxing",   label: "Boxing",   emoji: "🥊" },
 ];
 
+const financeSubs = [
+  { key: "ทั้งหมด",          label: "ทั้งหมด",   emoji: "💰" },
+  { key: "Bitcoin (BTC)",   label: "BTC",       emoji: "₿" },
+  { key: "Ethereum (ETH)",  label: "ETH",       emoji: "Ξ" },
+  { key: "Solana (SOL)",    label: "SOL",       emoji: "◎" },
+  { key: "XRP",             label: "XRP",       emoji: "✕" },
+  { key: "หุ้นไทย",          label: "หุ้นไทย",   emoji: "🇹🇭" },
+  { key: "หุ้น US",          label: "หุ้น US",   emoji: "🇺🇸" },
+  { key: "อื่นๆ",            label: "อื่นๆ",     emoji: "📊" },
+];
+
 interface Props {
   predictions: Prediction[];
 }
@@ -19,11 +30,13 @@ interface Props {
 export default function PredictList({ predictions }: Props) {
   const [activeCategory, setActiveCategory] = useState("ทั้งหมด");
   const [activeSport, setActiveSport] = useState("ทั้งหมด");
+  const [activeFinance, setActiveFinance] = useState("ทั้งหมด");
   const [search, setSearch] = useState("");
 
   function handleCategoryClick(c: string) {
     setActiveCategory(c);
     setActiveSport("ทั้งหมด");
+    setActiveFinance("ทั้งหมด");
   }
 
   const filtered = useMemo(() => {
@@ -33,10 +46,14 @@ export default function PredictList({ predictions }: Props) {
         activeCategory !== "กีฬา" ||
         activeSport === "ทั้งหมด" ||
         p.category === activeSport || p.title.toLowerCase().includes(activeSport.toLowerCase());
+      const matchFinance =
+        activeCategory !== "การเงิน" ||
+        activeFinance === "ทั้งหมด" ||
+        p.subcategory === activeFinance;
       const matchSearch = !search.trim() || p.title.toLowerCase().includes(search.toLowerCase());
-      return matchCat && matchSport && matchSearch;
+      return matchCat && matchSport && matchFinance && matchSearch;
     });
-  }, [predictions, activeCategory, activeSport, search]);
+  }, [predictions, activeCategory, activeSport, activeFinance, search]);
 
   return (
     <>
@@ -62,6 +79,26 @@ export default function PredictList({ predictions }: Props) {
           ))}
         </div>
       </div>
+
+      {/* Finance sub-filter */}
+      {activeCategory === "การเงิน" && (
+        <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
+          {financeSubs.map(({ key, label, emoji }) => (
+            <button
+              key={key}
+              onClick={() => setActiveFinance(key)}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold border transition-all whitespace-nowrap
+                ${activeFinance === key
+                  ? "bg-[rgba(251,191,36,0.15)] border-[rgba(251,191,36,0.5)] text-[#fbbf24]"
+                  : "bg-white/[0.03] border-[rgba(255,255,255,0.08)] text-[var(--text-muted)] hover:bg-white/[0.06]"
+                }`}
+            >
+              <span>{emoji}</span>
+              <span>{label}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Sports sub-filter */}
       {activeCategory === "กีฬา" && (

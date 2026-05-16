@@ -24,6 +24,7 @@ export default async function MissionsPage() {
   // --- Fetch real stats from DB ---
   let voteCountToday = 0;
   let voteCountWeek = 0;
+  let commentCountToday = 0;
   let correctVotes = 0;
   let totalSpent = 0;
   let streak = 0;
@@ -38,7 +39,7 @@ export default async function MissionsPage() {
     weekStart.setDate(weekStart.getDate() - weekStart.getDay() + (weekStart.getDay() === 0 ? -6 : 1));
     weekStart.setHours(0, 0, 0, 0);
 
-    const [todayVotes, weekVotes, allVotes, profile, claimedSlugs] = await Promise.all([
+    const [todayVotes, weekVotes, allVotes, todayComments, profile, claimedSlugs] = await Promise.all([
       supabase.from("votes").select("id", { count: "exact" })
         .eq("user_id", user.id)
         .gte("created_at", todayStart.toISOString()),
@@ -47,6 +48,9 @@ export default async function MissionsPage() {
         .gte("created_at", weekStart.toISOString()),
       supabase.from("votes").select("amount, choice, predictions(resolution)")
         .eq("user_id", user.id),
+      supabase.from("comments").select("id", { count: "exact" })
+        .eq("user_id", user.id)
+        .gte("created_at", todayStart.toISOString()),
       supabase.from("profiles").select("streak, xp, level, correct_predictions, total_predictions")
         .eq("id", user.id).single(),
       getClaimedMissionSlugs(user.id),
@@ -54,6 +58,7 @@ export default async function MissionsPage() {
 
     voteCountToday = todayVotes.count ?? 0;
     voteCountWeek = weekVotes.count ?? 0;
+    commentCountToday = todayComments.count ?? 0;
 
     if (allVotes.data) {
       totalSpent = allVotes.data.reduce((s, v) => s + (v.amount ?? 0), 0);
@@ -73,20 +78,20 @@ export default async function MissionsPage() {
 
   const daily = [
     { label: "ทำนาย 3 หัวข้อ",          reward: 150,  ...d("daily_predict", Math.min(voteCountToday, 3), 3) },
-    { label: "แสดงความคิดเห็น 1 ครั้ง",  reward: 100,  ...d("daily_comment", 0, 1) },
+    { label: "แสดงความคิดเห็น 1 ครั้ง",  reward: 100,  ...d("daily_comment", Math.min(commentCountToday, 1), 1) },
     { label: "ล็อกอินประจำวัน",           reward: 50,   ...d("daily_login",   user ? 1 : 0, 1) },
   ];
 
   const weekly = [
-    { label: "ทำนายถูก 5 ครั้ง",  reward: 500,  ...d("weekly_win5",   Math.min(correctVotes, 5),   5)  },
-    { label: "เชิญเพื่อน 1 คน",   reward: 1000, ...d("weekly_invite",  0, 1) },
-    { label: "ทำนาย 10 หัวข้อ",   reward: 300,  ...d(null,             Math.min(voteCountWeek, 10), 10) },
+    { label: "ทำนายถูก 5 ครั้ง",  reward: 500,  ...d("weekly_win5",      Math.min(correctVotes, 5),   5)  },
+    { label: "เชิญเพื่อน 1 คน",   reward: 1000, ...d("weekly_invite",    0, 1) },
+    { label: "ทำนาย 10 หัวข้อ",   reward: 300,  ...d("weekly_predict10", Math.min(voteCountWeek, 10), 10) },
   ];
 
   const special = [
     { label: "ทำนายถูก 100 ครั้ง (ตลอดกาล)", reward: 5000, ...d("special_100win",   Math.min(correctVotes, 100), 100)   },
     { label: "สตรีค 30 วัน",                  reward: 3000, ...d("special_streak30", Math.min(streak, 30),        30)    },
-    { label: "ใช้ญาณฯ รวม 10,000",           reward: 2000, ...d(null,               Math.min(totalSpent, 10000), 10000) },
+    { label: "ใช้ญาณฯ รวม 10,000",           reward: 2000, ...d("special_spend10k", Math.min(totalSpent, 10000), 10000) },
   ];
 
   const dailyDone  = daily.filter((m)   => m.progress >= m.total).length;

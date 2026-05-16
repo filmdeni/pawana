@@ -41,6 +41,8 @@ export async function createHeroSlideWithPrediction(
       ends_at: endsAt,
       yes_pool: 0,
       no_pool: 0,
+      yes_label: input.yes_label,
+      no_label: input.no_label,
     })
     .select("id")
     .single();
@@ -76,4 +78,12 @@ export async function createHeroSlideWithPrediction(
 
   revalidatePath("/");
   return { success: true, id: slide.id };
+}
+
+export async function reorderHeroSlides(items: { id: string; sort_order: number }[]) {
+  const supabase = await createClient();
+  await Promise.all(items.map(({ id, sort_order }) =>
+    supabase.from("hero_slides").update({ sort_order }).eq("id", id)
+  ));
+  revalidatePath("/");
 }

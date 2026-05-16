@@ -9,8 +9,10 @@ const MISSION_REWARDS: Record<string, { coins: number; xp: number }> = {
   daily_comment:  { coins: 100,  xp: 40  },
   weekly_win5:    { coins: 500,  xp: 200 },
   weekly_invite:  { coins: 1000, xp: 400 },
+  weekly_predict10: { coins: 300, xp: 120 },
   special_100win: { coins: 5000, xp: 2000 },
   special_streak30: { coins: 3000, xp: 1000 },
+  special_spend10k: { coins: 2000, xp: 800 },
 };
 
 function getMissionPeriodKey(resetAt: string | null): string {
@@ -33,8 +35,10 @@ const MISSION_RESET: Record<string, string | null> = {
   daily_comment:    "daily",
   weekly_win5:      "weekly",
   weekly_invite:    "weekly",
+  weekly_predict10: "weekly",
   special_100win:   null,
   special_streak30: null,
+  special_spend10k: null,
 };
 
 export async function claimMissionAction(slug: string) {
@@ -68,7 +72,7 @@ export async function claimMissionAction(slug: string) {
   if (existing) return { error: "รับแล้วในรอบนี้" };
 
   // Mark as claimed
-  await supabase.from("user_missions").upsert({
+  const { error: upsertErr } = await supabase.from("user_missions").upsert({
     user_id: user.id,
     mission_id: mission.id,
     period_key: periodKey,
@@ -76,19 +80,15 @@ export async function claimMissionAction(slug: string) {
     completed: true,
     completed_at: new Date().toISOString(),
   }, { onConflict: "user_id,mission_id,period_key" });
+  if (upsertErr) return { error: "บันทึกภารกิจล้มเหลว: " + upsertErr.message };
 
-  // Give coins + xp
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("coins, xp")
-    .eq("id", user.id)
-    .single();
-  if (!profile) return { error: "ไม่พบโปรไฟล์" };
-
-  await supabase.from("profiles").update({
-    coins: profile.coins + reward.coins,
-    xp: profile.xp + reward.xp,
-  }).eq("id", user.id);
+  // Give coins + xp (atomic — no read-then-write race condition)
+  const { error: rpcErr } = await supabase.rpc("add_coins_and_xp", {
+    p_user_id: user.id,
+    p_coins: reward.coins,
+    p_xp: reward.xp,
+  });
+  if (rpcErr) return { error: "อัปเดตโปรไฟล์ล้มเหลว: " + rpcErr.message };
 
   await supabase.from("notifications").insert({
     user_id: user.id,

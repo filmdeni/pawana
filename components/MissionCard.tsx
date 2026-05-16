@@ -1,5 +1,6 @@
 "use client";
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { claimMissionAction } from "@/lib/actions/missions";
@@ -21,14 +22,26 @@ export default function MissionCard({ m }: { m: Mission }) {
   const [claimed, setClaimed] = useState(!!m.done);
   const [burst, setBurst] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   function handleClaim(e: React.MouseEvent<HTMLButtonElement>) {
     if (claimed || isPending) return;
-    setBurst(true);
-    setTimeout(() => setBurst(false), 800);
-    setClaimed(true);
-    triggerRewardClaim(e.currentTarget, m.reward);
-    if (m.slug) startTransition(async () => { await claimMissionAction(m.slug!); });
+    const btn = e.currentTarget;
+    if (m.slug) {
+      startTransition(async () => {
+        const result = await claimMissionAction(m.slug!);
+        if (result?.error) {
+          console.error("claimMission error:", result.error);
+          alert("ไม่สามารถรับรางวัลได้: " + result.error);
+          return;
+        }
+        setClaimed(true);
+        setBurst(true);
+        setTimeout(() => setBurst(false), 800);
+        triggerRewardClaim(btn, m.reward);
+        router.refresh();
+      });
+    }
   }
 
   return (

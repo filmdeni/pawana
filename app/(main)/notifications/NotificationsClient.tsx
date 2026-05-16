@@ -1,6 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { Bell, CheckCheck } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { NotifRow } from "./page";
 import { markAllNotificationsRead, markNotificationRead } from "@/lib/actions/notifications";
 
@@ -36,6 +37,7 @@ function timeAgo(dateStr: string): string {
 export default function NotificationsClient({ notifications: initial }: { notifications: NotifRow[] }) {
   const [notifs, setNotifs] = useState(initial);
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   const unreadCount = notifs.filter((n) => !n.read).length;
 
@@ -97,7 +99,21 @@ export default function NotificationsClient({ notifications: initial }: { notifi
                   {!n.read && <div className="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0 mt-1.5" />}
                 </div>
                 {n.body && <p className="text-xs text-[var(--text-muted)] mt-0.5 leading-relaxed">{n.body}</p>}
-                <p className="text-[10px] text-purple-600 mt-1">{timeAgo(n.created_at)}</p>
+                <div className="flex items-center gap-3 mt-1">
+                  <p className="text-[10px] text-purple-600">{timeAgo(n.created_at)}</p>
+                  {n.data?.prediction_id && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!n.read) handleMarkOne(n.id);
+                        router.push(`/predict/${n.data!.prediction_id}`);
+                      }}
+                      className="text-[10px] text-purple-400 hover:text-purple-300 underline underline-offset-2 transition-colors"
+                    >
+                      ดูรายละเอียด →
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}
