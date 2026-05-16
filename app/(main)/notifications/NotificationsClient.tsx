@@ -101,12 +101,12 @@ export default function NotificationsClient({ notifications: initial }: { notifi
                 {n.body && <p className="text-xs text-[var(--text-muted)] mt-0.5 leading-relaxed">{n.body}</p>}
                 <div className="flex items-center gap-3 mt-1">
                   <p className="text-[10px] text-purple-600">{timeAgo(n.created_at)}</p>
-                  {n.data?.prediction_id && (
+                  {!!n.data?.prediction_id && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         if (!n.read) handleMarkOne(n.id);
-                        router.push(`/predict/${n.data!.prediction_id}`);
+                        router.push(`/predict/${n.data!.prediction_id as string}`);
                       }}
                       className="text-[10px] text-purple-400 hover:text-purple-300 underline underline-offset-2 transition-colors"
                     >
